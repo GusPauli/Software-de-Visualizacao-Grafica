@@ -1,0 +1,3 @@
+/home/gustavopauli/Área de Trabalho/Trabalhos CG/2025(letivo 2024)/Trabalho 2 CG/build/CMakeFiles/Trabalho_2_CG.dir
+/home/gustavopauli/Área de Trabalho/Trabalhos CG/2025(letivo 2024)/Trabalho 2 CG/build/CMakeFiles/edit_cache.dir
+/home/gustavopauli/Área de Trabalho/Trabalhos CG/2025(letivo 2024)/Trabalho 2 CG/build/CMakeFiles/rebuild_cache.dir
