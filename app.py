@@ -3,13 +3,13 @@ from superfice import *
 from pipeline import *
 from config import *
 
-#vetor para armazenar superficies
+# Vetor para armazenar superfícies
 superficies = []
 superfices_tela = []
 inp = []
 outp = []
 att_inp = []
-index=0
+index = 0
 
 def att_vrp():
     CAMERA.VRP[0] = dpg.get_value("vrp_x")
@@ -17,16 +17,36 @@ def att_vrp():
     CAMERA.VRP[2] = dpg.get_value("vrp_z")
 
 def att_fonte_luz():
-    a =0
+    pass  # Implemente conforme necessário
 
-def print_vet(vet):
-    for i, row in enumerate(vet):
+def print_vet(inp):
+    for i, row in enumerate(inp):
         for j, point in enumerate(row):
-            print(f"inp[{i}][{j}]: x = {point.x}, y = {point.y}, z = {point.z}")
-    
+            if hasattr(point, 'x'):  # Verifica se o ponto tem os atributos esperados
+                print(f"inp[{i}][{j}]: x = {point.x}, y = {point.y}, z = {point.z}")
+            else:
+                print(f"inp[{i}][{j}]: Tipo de dado inesperado - {point}")
+
+def translada():
+    x = dpg.get_value("translada_x")
+    y = dpg.get_value("translada_y")
+    z = dpg.get_value("translada_z")
+    trans = Traslacao(x, y, z)
+    # Aplica a translação aos pontos de controle e regenera a malha
+
+def rotaciona(sender, app_data, user_data):
+    grau = dpg.get_value("Grau")
+    if user_data == "X":
+        mat = Rotacao_em_x(grau)
+    elif user_data == "Y":
+        mat = rotacao_em_y(grau)
+    elif user_data == "Z":
+        mat = rotacao_em_z(grau)
+    elif user_data == "E":
+        mat = Escala(grau)
+    # Aplica a transformação aos pontos de controle e regenera a malha
 
 def surface_callback():
-    # Obtém os valores dos widgets de entrada
     NI = dpg.get_value("input_NI")
     NJ = dpg.get_value("input_NJ")
     TI = dpg.get_value("input_TI")
@@ -34,95 +54,67 @@ def surface_callback():
     RESOLUTIONI = dpg.get_value("input_ResolutionI")
     RESOLUTIONJ = dpg.get_value("input_ResolutionJ")
 
-    # Chama a função para gerar a superfície
     inp, outp = generate_spline_surface(NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ)
-    #print_vet(inp)
-    superficies.append((inp,outp))
-    #aplica o pipeline
-    result_tuple = pipeline(DESENHO.PERS, superficies[0][0],superficies[0][1], CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
-                    WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
-    
-    print_vet(superfices_tela[0][0])
-
-def translada():
-    # Obtém os valores das caixas de entrada
-    x = dpg.get_value("translada_x")
-    y = dpg.get_value("translada_y")
-    z = dpg.get_value("translada_z")
-
-    trans = Traslacao(x,y,z)
-    #att_inp = trans @ inp
-     
-    #aplica a translacao aos pontos decontrole e regenera a malha
-
-def rotaciona(sender, app_data, user_data):
-    #obtem o angulo
-    grau = dpg.get_value("Grau")
-
-    if user_data == "X":
-        mat = Rotacao_em_x(grau)
-        #aplica a translacao aos pontos decontrole e regenera a malha
-    elif user_data =="Y":
-        mat = rotacao_em_y(grau)
-        #aplica a translacao aos pontos decontrole e regenera a malha
-    elif user_data == "Z":
-        mat = rotacao_em_z(grau)
-        #aplica a translacao aos pontos decontrole e regenera a malha
-    elif user_data == "E":
-        mat = Escala(grau)
-        #aplica a translacao aos pontos decontrole e regenera a malha
-    
+    superficies.append((inp, outp))
+    new_inp, new_outp = pipeline(DESENHO.PERS, superficies[0][0], superficies[0][1], CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
+                                WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
+    superfices_tela.append((new_inp, new_outp))
+    desenha(superfices_tela)  # Renderiza a superfície na tela
 
 def limpa_tela():
-    dpg.delete_item("viewport_back", children_only=True)
+    dpg.delete_item("main_drawlist", children_only=True)
 
-def desenha():
-    dpg.draw_circle((400, 300), radius=5, color=(255, 0, 200), parent="viewport_back")
+def desenha(listas):
+    limpa_tela()  # Limpa a tela antes de desenhar
+    for superficie in listas:
+        pontos_controle, pontos_superficie = superficie
+        desenha_pontos(pontos_controle, cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
+        desenha_malha(pontos_superficie, cor_linha=(0, 0, 255))  # Desenha malha em azul
+        desenha_pontos(pontos_superficie, cor_pontos=(0, 255, 0))  # Desenha pontos da superfície em verde
+
+def desenha_pontos(matriz_pontos, cor_pontos=(255, 255, 255)):
+    for linha in matriz_pontos:
+        for ponto in linha:
+            x, y, z = ponto  # Assumindo que cada ponto é [x, y, z]
+            dpg.draw_circle([x, y], radius=1, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
+
+def desenha_malha(matriz_pontos, cor_linha=(255, 255, 255)):
+    num_linhas = len(matriz_pontos)
+    if num_linhas == 0:
+        return
+    num_colunas = len(matriz_pontos[0])
+    for i in range(num_linhas):
+        for j in range(num_colunas - 1):
+            x1, y1, _ = matriz_pontos[i][j]
+            x2, y2, _ = matriz_pontos[i][j + 1]
+            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
+    for j in range(num_colunas):
+        for i in range(num_linhas - 1):
+            x1, y1, _ = matriz_pontos[i][j]
+            x2, y2, _ = matriz_pontos[i + 1][j]
+            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
 
 def reabrir_janela():
     dpg.show_item("janela_com_abas")
 
-#---------------------------------COLOCAR FUNÇÕES DAQUI PARA CIMA---------------------------------------------
-#-------------------------------------------------------------------------------------------------------------    
+# Configuração inicial do Dear PyGui
 dpg.create_context()
 
-# creating font and back viewport drawlists
-with dpg.viewport_drawlist(front=False, tag="viewport_back"):
-    #dpg.draw_circle((100, 100), 25, color=(255, 255, 255, 255))
-    desenha()
+# Cria uma área de desenho
+with dpg.window(label="Janela de Desenho", width=WINDOW.WIDTH, height=WINDOW.HEIGHT):
+    dpg.add_drawlist(width=WINDOW.WIDTH, height=WINDOW.HEIGHT, tag="main_drawlist")
 
-dpg.add_viewport_drawlist(front=False, label="viewport_canva")
-
-#dpg.draw_circle((200, 200), 25, color=(255, 255, 255, 255), parent="viewport_back")
-
-
-with dpg.viewport_menu_bar():
-    with dpg.menu(label="File"):
-        dpg.add_menu_item(label="Save", callback='')
-        dpg.add_menu_item(label="Save As", callback='')
-
-        with dpg.menu(label="Settings"):
-            dpg.add_menu_item(label="Setting 1", callback='', check=True)
-            dpg.add_menu_item(label="Setting 2", callback='')
-
-    dpg.add_menu_item(label="Help", callback='')
-
-    with dpg.menu(label="Tela"):
-        dpg.add_button(label="Limpar Tela", callback=limpa_tela)
-        dpg.add_button(label="Abrir Janela", callback=reabrir_janela)
-
-# Cria uma janela com abas
+# Cria a janela com abas
 with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_abas"):
-    # Cria uma barra de abas
     with dpg.tab_bar(tag="tab_bar"):
         with dpg.tab(label="Malha", tag="malha"):
             dpg.add_text("Criar malha")
-            dpg.add_input_int(label="NI", tag = "input_NI", default_value=4)
-            dpg.add_input_int(label="NJ", tag = "input_NJ", default_value=4)
-            dpg.add_input_int(label="TI", tag = "input_TI", default_value=3)
-            dpg.add_input_int(label="TJ", tag = "input_TJ", default_value=3)
-            dpg.add_input_int(label="ResolutionI", tag = "Input_resI", default_value=10)
-            dpg.add_input_int(label="ResolutionJ", tag = "Input_resJ", default_value=10)
+            dpg.add_input_int(label="NI", tag="input_NI", default_value=4)
+            dpg.add_input_int(label="NJ", tag="input_NJ", default_value=4)
+            dpg.add_input_int(label="TI", tag="input_TI", default_value=3)
+            dpg.add_input_int(label="TJ", tag="input_TJ", default_value=3)
+            dpg.add_input_int(label="ResolutionI", tag="input_ResolutionI", default_value=10)
+            dpg.add_input_int(label="ResolutionJ", tag="input_ResolutionJ", default_value=10)
             dpg.add_button(label="Criar malha", callback=surface_callback)
 
         with dpg.tab(label="Tela", tag="tab4"):
@@ -132,21 +124,12 @@ with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_a
                 dpg.add_input_int(label="Height", tag="height", default_value=WINDOW.HEIGHT, width=80)
             dpg.add_button(label="Aplicar", callback=att_vrp)
 
-        # Aba 2
         with dpg.tab(label="Transformações", tag="transf"):
             dpg.add_text("Editar posição da Câmera")
             with dpg.group(horizontal=True):
                 dpg.add_input_int(label="X", tag="vrp_x", default_value=CAMERA.VRP[0], width=80)
                 dpg.add_input_int(label="Y", tag="vrp_y", default_value=CAMERA.VRP[1], width=80)
                 dpg.add_input_int(label="Z", tag="vrp_z", default_value=CAMERA.VRP[2], width=80)
-            dpg.add_button(label="Aplicar", callback=att_vrp)
-            dpg.add_separator()
-
-            dpg.add_text("Editar posição do ponto focal")
-            with dpg.group(horizontal=True):
-                dpg.add_input_int(label="X", tag="p_x", default_value=CAMERA.VRP[0], width=80)
-                dpg.add_input_int(label="Y", tag="p_y", default_value=CAMERA.VRP[1], width=80)
-                dpg.add_input_int(label="Z", tag="p_z", default_value=CAMERA.VRP[2], width=80)
             dpg.add_button(label="Aplicar", callback=att_vrp)
             dpg.add_separator()
 
@@ -166,7 +149,6 @@ with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_a
                 dpg.add_button(label="Rotação Y", callback=rotaciona, user_data="Y")
                 dpg.add_button(label="Rotação Z", callback=rotaciona, user_data="Z")
 
-        # Aba 3
         with dpg.tab(label="Elementos da Luz", tag="tab3"):
             dpg.add_text("Editar Posição da Fonte de Luz")
             with dpg.group(horizontal=True):
@@ -194,25 +176,26 @@ with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_a
 
             dpg.add_text("Editar ka")
             with dpg.group(horizontal=True):
-                dpg.add_input_float(label="X", tag="ka_x", default_value=Fonte_Luz.Ka[0], width=80,format="%.1f")
-                dpg.add_input_float(label="Y", tag="ka_y", default_value=Fonte_Luz.Ka[1], width=80,format="%.1f")
-                dpg.add_input_float(label="Z", tag="ka_z", default_value=Fonte_Luz.Ka[2], width=80,format="%.1f")
+                dpg.add_input_float(label="X", tag="ka_x", default_value=Fonte_Luz.Ka[0], width=80, format="%.1f")
+                dpg.add_input_float(label="Y", tag="ka_y", default_value=Fonte_Luz.Ka[1], width=80, format="%.1f")
+                dpg.add_input_float(label="Z", tag="ka_z", default_value=Fonte_Luz.Ka[2], width=80, format="%.1f")
             dpg.add_button(label="Aplicar", callback=att_fonte_luz, user_data="ka")
             dpg.add_spacer()
             dpg.add_text("Editar kd")
             with dpg.group(horizontal=True):
-                dpg.add_input_float(label="X", tag="kd_x", default_value=Fonte_Luz.Kd[0], width=80,format="%.1f")
-                dpg.add_input_float(label="Y", tag="kd_y", default_value=Fonte_Luz.Kd[1], width=80,format="%.1f")
-                dpg.add_input_float(label="Z", tag="kd_z", default_value=Fonte_Luz.Kd[2], width=80,format="%.1f")
+                dpg.add_input_float(label="X", tag="kd_x", default_value=Fonte_Luz.Kd[0], width=80, format="%.1f")
+                dpg.add_input_float(label="Y", tag="kd_y", default_value=Fonte_Luz.Kd[1], width=80, format="%.1f")
+                dpg.add_input_float(label="Z", tag="kd_z", default_value=Fonte_Luz.Kd[2], width=80, format="%.1f")
             dpg.add_button(label="Aplicar", callback=att_fonte_luz, user_data="ka")
             dpg.add_spacer()
             dpg.add_text("Editar ks")
             with dpg.group(horizontal=True):
-                dpg.add_input_float(label="X", tag="ks_x", default_value=Fonte_Luz.Ks[0], width=80,format="%.1f")
-                dpg.add_input_float(label="Y", tag="ks_y", default_value=Fonte_Luz.Ks[1], width=80,format="%.1f")
-                dpg.add_input_float(label="Z", tag="ks_z", default_value=Fonte_Luz.Ks[2], width=80,format="%.1f")
+                dpg.add_input_float(label="X", tag="ks_x", default_value=Fonte_Luz.Ks[0], width=80, format="%.1f")
+                dpg.add_input_float(label="Y", tag="ks_y", default_value=Fonte_Luz.Ks[1], width=80, format="%.1f")
+                dpg.add_input_float(label="Z", tag="ks_z", default_value=Fonte_Luz.Ks[2], width=80, format="%.1f")
             dpg.add_button(label="Aplicar", callback=att_fonte_luz, user_data="ks")
 
+# Configuração da viewport
 dpg.create_viewport(title='Custom Title', width=WINDOW.WIDTH, height=WINDOW.HEIGHT)
 dpg.setup_dearpygui()
 dpg.show_viewport()

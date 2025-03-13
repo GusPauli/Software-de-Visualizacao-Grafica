@@ -83,9 +83,9 @@ def generate_spline_surface(
         random.seed(seed)
         for i in range(NI + 1):
             for j in range(NJ + 1):
-                inp[i][j].x = i * 13
-                inp[i][j].y = (random.randint(0, 9999)) / 1000.0 - 1
-                inp[i][j].z = j * 13
+                inp[i][j].x = i * 100
+                inp[i][j].y = j * 100
+                inp[i][j].z = random.randint(0, 100)
 
     # Arrays para armazenar a superfície gerada
     outp: List[List[XYZ]] = [[XYZ(0, 0, 0) for _ in range(RESOLUTIONJ)] for _ in range(RESOLUTIONI)]
