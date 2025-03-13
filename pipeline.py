@@ -5,10 +5,13 @@ from numba import njit
 from superfice import XYZ
 
 
-def print_vet(vet):
-    for i, row in enumerate(vet):
+def print_vet(inp):
+    for i, row in enumerate(inp):
         for j, point in enumerate(row):
-            print(f"inp[{i}][{j}]: x = {point.x}, y = {point.y}, z = {point.z}")
+            if hasattr(point, 'x'):  # Check if the point has the expected attributes
+                print(f"inp[{i}][{j}]: x = {point.x}, y = {point.y}, z = {point.z}")
+            else:
+                print(f"inp[{i}][{j}]: Unexpected data type - {point}")
 
 def Traslacao(x,y,z):
     matrix_trans = [[1,0,0,x],
@@ -99,12 +102,11 @@ def camera_viewport_mat(Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax): #Transf
             [   0  ,   0  ,   0  ,       1          ] ]
     
 
-# Define a matriz de projeção
 def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax):
     # Calcular a matriz de transformação de câmera
     camera_transf = camera_transf_mat(vrp, p, Y)
     
-    # Configurar a matriz de projeção (perspectiva ou axonométrica)
+    # Configurar a matriz de projeção
     if projpers:  # Projeção perspectiva
         camera_pers = [
             [1, 0, 0, 0],
@@ -121,35 +123,32 @@ def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, v
             [0, 0, 0, 1]
         ]
         camera_transf = matmul(camera_axo, camera_transf)
-        
+    
     # Calcular a matriz final de transformação
     viewport_matrix = camera_viewport_mat(Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax)
     viewp_mat = matmul(viewport_matrix, camera_transf)
     
-    # Função para processar um vetor
-    def process_vector(verts):
-        for row in verts:
-            viewp_points = []
-            for vert in row:
-                    # Verificar se vert é uma lista ou um objeto XYZ
-                if isinstance(vert, list):
-                    x, y, z = vert
-                elif isinstance(vert, XYZ):
-                    x, y, z = vert.x, vert.y, vert.z
+    # Função para processar uma matriz de objetos XYZ
+    def process_matrix(matrix):
+        transformed_points = []
+        for i, row in enumerate(matrix):
+            row_points = []
+            for j, point in enumerate(row):
+                # Verificar se é um objeto XYZ
+                if hasattr(point, 'x') and hasattr(point, 'y') and hasattr(point, 'z'):
+                    # Transformar o ponto
+                    x = viewp_mat[0][0] * point.x + viewp_mat[0][1] * point.y + viewp_mat[0][2] * point.z + viewp_mat[0][3] * 1
+                    y = viewp_mat[1][0] * point.x + viewp_mat[1][1] * point.y + viewp_mat[1][2] * point.z + viewp_mat[1][3] * 1
+                    z = viewp_mat[2][0] * point.x + viewp_mat[2][1] * point.y + viewp_mat[2][2] * point.z + viewp_mat[2][3] * 1
+                    # Arredondar para valores inteiros
+                    row_points.append([int(x), int(y), int(z)])
                 else:
-                    raise TypeError("vert deve ser uma lista ou um objeto XYZ")
-                
-                #print_vet(vert)  # Função para imprimir o vetor (ajuste conforme necessário)
-                x = viewp_mat[0][0] * x + viewp_mat[0][1] * y + viewp_mat[0][2] * z + viewp_mat[0][3] * 1
-                y = viewp_mat[1][0] * x + viewp_mat[1][1] * y + viewp_mat[1][2] * z + viewp_mat[1][3] * 1
-                z = viewp_mat[2][0] * x + viewp_mat[2][1] * y + viewp_mat[2][2] * z + viewp_mat[2][3] * 1
-
-                # Arredonda os valores
-                viewp_points.append([int(x), int(y), int(z)])
-        return viewp_points
-
-    # Processar os vetores de entrada (inp) e saída (outp)
-    inp_transformed = process_vector(inp)
-    outp_transformed = process_vector(outp)
+                    print(f"Warning: Point at [{i}][{j}] is not an XYZ object")
+            transformed_points.append(row_points)
+        return transformed_points
+    
+    # Processar as matrizes de entrada e saída
+    inp_transformed = process_matrix(inp)
+    outp_transformed = process_matrix(outp)
     
     return inp_transformed, outp_transformed

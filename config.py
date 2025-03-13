@@ -30,7 +30,7 @@ class TEXT_BOX:
 
 
 class CAMERA:
-    VRP = [0, 600, 600]
+    VRP = [100, 100, 100]
     p = [0,0,0]
     dp = 1000
     Y = [0, 1, 0]
