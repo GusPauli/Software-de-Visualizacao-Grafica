@@ -3,6 +3,7 @@ import dearpygui.dearpygui as dpg
 from pipeline import pipeline
 from config import *
 from typing import List, Tuple
+from visibilidade import *
 
 # Definição da estrutura XYZ (equivalente à struct XYZ em C)
 class XYZ:
@@ -11,26 +12,76 @@ class XYZ:
         self.y = y
         self.z = z
 
-def desenha_pontos(matriz_pontos, cor_pontos=(255, 255, 255)):
-        for linha in matriz_pontos:
-            for ponto in linha:
-                x, y, z = ponto  # Assumindo que cada ponto é [x, y, z]
-                dpg.draw_circle([x, y], radius=1, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
+def desenha_pontos(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, raio = None,cor_pontos=(255, 255, 255), mostrar_indices=False):
+    for i, linha in enumerate(matriz_pontos):
+        for j, ponto in enumerate(linha):
+            x, y, z = ponto  # Assumindo que cada ponto é [x, y, z]
+            
+            # Verificar se o ponto é visível (caso fornecido)
+            visivel = True
+            if matriz_pontos_originais is not None and pontos_visiveis is not None:
+                ponto_original = matriz_pontos_originais[i][j]
+                if ponto_original not in pontos_visiveis:
+                    visivel = False
+                    continue  # Pular este ponto se não estiver na lista de visíveis
+        
+            dpg.draw_circle([x, y], radius=3, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
+            
+            # Mostrar índice do ponto se necessário
+            if mostrar_indices and visivel:
+                # Encontrar o índice na lista de pontos visíveis
+                if matriz_pontos_originais is not None and pontos_visiveis is not None:
+                    ponto_original = matriz_pontos_originais[i][j]
+                    try:
+                        idx = pontos_visiveis.index(ponto_original)
+                        dpg.draw_text([x+2, y+2], f"VP:{idx}", color=cor_pontos, parent="main_drawlist")
+                    except ValueError:
+                        pass  # Se não encontrado em visible_points, não faz nada
 
-def desenha_malha(matriz_pontos, cor_linha=(255, 255, 255)):
+def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0)):
     num_linhas = len(matriz_pontos)
     if num_linhas == 0:
         return
     num_colunas = len(matriz_pontos[0])
+    
+    # Desenhar linhas horizontais
     for i in range(num_linhas):
         for j in range(num_colunas - 1):
             x1, y1, _ = matriz_pontos[i][j]
             x2, y2, _ = matriz_pontos[i][j + 1]
+            
+            # Definir a cor da linha com base na visibilidade dos pontos
+            cor_linha = cor_linha_visivel  # Assume que é visível por padrão
+            
+            if matriz_pontos_originais is not None and pontos_visiveis is not None:
+                ponto1_original = matriz_pontos_originais[i][j]
+                ponto2_original = matriz_pontos_originais[i][j+1]
+                
+                # Verificar se ambos os pontos são visíveis
+                if ponto1_original not in pontos_visiveis or ponto2_original not in pontos_visiveis:
+                    cor_linha = cor_linha_invisivel  # Pelo menos um ponto não é visível
+            
+            # Desenhar a linha com a cor apropriada
             dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
+    
+    # Desenhar linhas verticais
     for j in range(num_colunas):
         for i in range(num_linhas - 1):
             x1, y1, _ = matriz_pontos[i][j]
             x2, y2, _ = matriz_pontos[i + 1][j]
+            
+            # Definir a cor da linha com base na visibilidade dos pontos
+            cor_linha = cor_linha_visivel  # Assume que é visível por padrão
+            
+            if matriz_pontos_originais is not None and pontos_visiveis is not None:
+                ponto1_original = matriz_pontos_originais[i][j]
+                ponto2_original = matriz_pontos_originais[i+1][j]
+                
+                # Verificar se ambos os pontos são visíveis
+                if ponto1_original not in pontos_visiveis or ponto2_original not in pontos_visiveis:
+                    cor_linha = cor_linha_invisivel  # Pelo menos um ponto não é visível
+            
+            # Desenhar a linha com a cor apropriada
             dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
 
 class spline_surface:
@@ -109,7 +160,7 @@ class spline_surface:
                 for j in range(NJ + 1):
                     inp[i][j].x = i * 100
                     inp[i][j].y = j * 100
-                    inp[i][j].z = random.randint(0, 100)
+                    inp[i][j].z = random.randint(0, 400)
 
         # Arrays para armazenar a superfície gerada
         outp: List[List[XYZ]] = [[XYZ(0, 0, 0) for _ in range(RESOLUTIONJ)] for _ in range(RESOLUTIONI)]
@@ -179,7 +230,17 @@ class spline_surface:
         self.control_points_tela, self.surface_points_tela = pipeline(DESENHO.PERS, inp, outp, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
                                 WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
 
+        self.visible_points, self.visible_faces, self.faces = visibility(self.surface_points, CAMERA.VRP)
+
+
     def desenha_wireframe(self):
-        desenha_pontos(self.control_points_tela, cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
-        desenha_malha(self.surface_points_tela, cor_linha=(0, 0, 255))  # Desenha malha em azul
-        desenha_pontos(self.control_points_tela, cor_pontos=(0, 255, 0))  # Desenha pontos da superfície em verde
+        desenha_pontos(self.control_points_tela,cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
+
+        desenha_malha(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
+                      pontos_visiveis=self.visible_points, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0) 
+                                                                                           # Azul para arestas visíveis 
+                                                                                           # Vermelho para arestas não visíveis
+        )
+        # Desenha apenas os pontos visíveis da superfície em verde
+        desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
+                        pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde

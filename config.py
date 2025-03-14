@@ -1,8 +1,8 @@
 import pygame
 
 class WINDOW: # Definições da janela
-    WIDTH = 1080
-    HEIGHT = 700
+    WIDTH = 800
+    HEIGHT = 600
     BACKGROUND = (255, 255, 255)
 
 # Definições do desenho
@@ -30,7 +30,7 @@ class TEXT_BOX:
 
 
 class CAMERA:
-    VRP = [100, 100, 100]
+    VRP = [0,0, 100]
     p = [0,0,0]
     dp = 1000
     Y = [0, 1, 0]
