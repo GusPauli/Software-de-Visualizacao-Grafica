@@ -3,11 +3,19 @@ from pygame import *
 from buffer import *
 from superfice import XYZ
 
+class RGB:
+    def __init__(self, red, green, blue):
+        self.red = red
+        self.green = green
+        self.blue = blue
+
 class face:
     def __init__(self, lista_vertices):
         self.vertices = lista_vertices
         self.centroide = self.calc_centroid()
         self.vetor_normal = self.calc_vetor_normal()
+        self.iluminacao_face = RGB(0, 0, 0)
+        self.iluminacao_vertices = []
     
     def calc_centroid(self):
         centroide = XYZ(0, 0, 0)
@@ -26,60 +34,53 @@ class face:
         vec_b_c = [ver_c.x-ver_b.x, ver_c.y-ver_b.y, ver_c.z-ver_b.z]
         return normalize(cross(vec_b_c, vec_b_a))
 
-def normal(vA, vB, vC):
-    B_A = [vB.x-vA.x, vB.y-vA.y, vB.z-vA.z]
-    B_C = [vB.x-vC.x, vB.y-vC.y, vB.z-vC.z]
-    return normalize(cross(B_C, B_A))
-
 def It_calc(Ia, Id, Is):
-    ITr = Ia[0]+Id[0]+Is[0]
-    ITg = Ia[1]+Id[1]+Is[1]
-    ITb = Ia[2]+Id[2]+Is[2]
+    IT = RGB(Ia.red+Id.red+Is.red, Ia.green+Id.green+Is.green, Ia.blue+Id.blue+Is.blue)
 
-    if ITr > 255:
-        ITr = 255
-    elif ITr < 0:
-        ITr = 0
+    if IT.red > 255:
+        IT.red = 255
+    elif IT.red < 0:
+        IT.red = 0
 
-    if ITg > 255:
-        ITg = 255
-    elif ITg < 0:
-        ITg = 0
+    if IT.green > 255:
+        IT.green = 255
+    elif IT.green < 0:
+        IT.green = 0
 
-    if ITb > 255:
-        ITb = 255
-    elif ITb < 0:
-        ITb = 0
+    if IT.blue > 255:
+        IT.blue = 255
+    elif IT.blue < 0:
+        IT.blue = 0
 
-    return ([ITr, ITg, ITb])
+    return IT
 
-def somb_const(obj, v_faces, vrp, L, ila, il, ka, kd, ks, n):
+def somb_const(list_faces, vrp, L, ila, il, ka, kd, ks, n):
     It_faces = []
-    for f in v_faces:
-        centroid = f_centroid(obj, f)  #centroide da face
-        N = normal(obj[f[0]],  obj[f[1]],  obj[f[2]]) #normal da face
-        L_dir = normalize([L[0]-centroid[0],  L[1]-centroid[1],  L[2]-centroid[2]]) #vetor direção da luz 
+    for fc in list_faces:
+        centroide = fc.centroide
+        N = fc.vetor_normal #normal da face
+        L_dir = normalize([L.x-centroide.x,  L.y-centroide.y,  L.z-centroide.z]) #vetor direção da luz 
 
-        Ia = [ila[0]*ka[0],   ila[1]*ka[1],   ila[2]*ka[2]]
+        Ia = RGB(ila.red*ka.red, ila.green*ka.green, ila.blue*ka.blue)
 
         n_dot_l = dot(N, L_dir)
         if n_dot_l < 0:
-            It_faces.append(It_calc(Ia, [0,0,0], [0,0,0])) #apenas iluminação ambiente p a face atual
+            It_faces.append(It_calc(Ia, RGB(0, 0, 0), RGB(0, 0, 0))) #apenas iluminação ambiente p a face atual
             continue
         
-        Id = [il[0]*kd[0]*n_dot_l,   il[1]*kd[1]*n_dot_l,   il[2]*kd[2]*n_dot_l]
+        Id = [il.red*kd.red*n_dot_l,   il.green*kd.green*n_dot_l,   il.blue*kd.blue*n_dot_l]
         
-        aux =        [   2*n_dot_l*N[0],       2*n_dot_l*N[1],       2*n_dot_l*N[2]   ] 
-        r = normalize([ aux[0]-L_dir[0],      aux[1]-L_dir[1],      aux[2]-L_dir[2]  ])
-        s = normalize([vrp[0]-centroid[0],   vrp[1]-centroid[1],   vrp[2]-centroid[2]])
+        aux =        [   2*n_dot_l*N.x,       2*n_dot_l*N.y,       2*n_dot_l*N.z   ] 
+        r = normalize([ aux.x-L_dir.x,      aux.y-L_dir.y,      aux.z-L_dir.z  ])
+        s = normalize([vrp.x-centroide.x,   vrp.y-centroide.y,   vrp.z-centroide,z])
         r_dot_s = dot(r, s)
 
         if r_dot_s < 0:
-            It_faces.append(It_calc(Ia, Id, [0, 0, 0])) #apenas iluminação ambiente e difusa p a face atual
+            It_faces.append(It_calc(Ia, Id, RGB(0, 0, 0))) #apenas iluminação ambiente e difusa p a face atual
             continue
         
         aux = r_dot_s**n
-        Is = [il[0]*ks[0]*aux,  il[1]*ks[1]*aux,  il[2]*ks[2]*aux]
+        Is = [il.red*ks.red*aux,  il.green*ks.green*aux,  il.blue*ks.blue*aux]
 
         It_faces.append(It_calc(Ia, Id, Is))
 
@@ -312,66 +313,3 @@ def fill_triangulo(screen, A, B, C, cor, zbuffer, imgbuffer):
                 imgbuffer.put_pixel(round(x),round(y),cor)
                 screen.set_at((x,y),cor)
             zint+=tzX1_X2
-
-
-def fill_triangulo(screen, A, B, C, cor,zbuffer,imgbuffer):
-    
-    if A[1] == B[1]:
-        txA_B = 0
-        txB_C = (C[0] - B[0]) / (C[1] - B[1])
-        tzA_B = 0    
-        tzB_C = (C[2] - B[2]) / (C[1] - B[1])
-    elif B[1] == C[1]:
-        txA_B = (B[0] - A[0]) / (B[1] - A[1])
-        txB_C = 0
-        tzA_B = (B[2] - A[2]) / (B[1] - A[1])     
-        tzB_C = 0
-    else:
-        txA_B = (B[0] - A[0]) / (B[1] - A[1])
-        txB_C = (C[0] - B[0]) / (C[1] - B[1])
-        tzA_B = (B[2] - A[2]) / (B[1] - A[1])     
-        tzB_C = (C[2] - B[2]) / (C[1] - B[1])
-
-    txA_C = (C[0] - A[0]) / (C[1] - A[1])
-    tzA_C = (C[2] - A[2]) / (C[1] - A[1])
-
-    x1 = A[0]
-    x2 = A[0]
-    z1 = A[2]
-    z2 = A[2]
-
-
-    for y in range((int(A[1]+1)), (int(C[1] - 1))):
-        if (y < B[1]):
-            x1 += txA_B
-            z1 += tzA_B
-
-        elif (y == B[1]):
-            x1 = B[0]
-            z1 = B[2]
-        else:
-            x1 += txB_C
-            z1 += tzB_C
-
-        x2 += txA_C
-        z2 += tzA_C
-
-        if min(x1, x2) == x1:
-            tzX1_X2 = ((z2-z1) / (x2-x1))
-            zint = z1
-        else:
-            tzX1_X2 = ((z1-z2) / (x1-x2))
-            zint = z2
-        
-
-        for x in range(round(min(x1, x2)), (round(max(x1, x2)))):
-            pixel = imgbuffer.get_pixel(x,y) #pega a posição no buffer de imagem
-            if np.all(pixel != [0,0,0]): #se for diferente de (0,0,0) ja esta pintado
-                if zbuffer.test_and_set(round(x),round(y),round(zint)): #verifica se o z em processamento é maior ou menor que o z armazenado
-                    imgbuffer.put_pixel(round(x),round(y),cor) #atualiza o buffer de imagem
-                    screen.set_at((x,y),cor) #pinta a tela
-            else:
-                imgbuffer.put_pixel(round(x),round(y),cor)
-                screen.set_at((x,y),cor)
-            zint+=tzX1_X2
-            
