@@ -52,9 +52,11 @@ def rotacao_em_z(grau):
     
     return matrix_rotacao
 
-def normalize(v): #Correto (conferido)
-    module = sqrt(v[0]**2 + v[1]**2 + v[2]**2)
-    normalized = [v[0]/module, v[1]/module, v[2]/module]
+def normalize(v):
+    module = (v[0]**2 + v[1]**2 + v[2]**2) ** 0.5  # Cálculo do módulo
+    if module == 0:
+        return [0.0, 0.0, 0.0]  # Retorna o vetor nulo se o módulo for zero
+    normalized = [v[0]/module, v[1]/module, v[2]/module]  # Normaliza o vetor
     return normalized
 
 def dot(A, B):  #A * B = float
@@ -84,6 +86,13 @@ def camera_transf_mat(vrp, p, Y): #Transformaçao SRU -> SRC
 
     U = cross(V, N) # U = V x N (Como V e N são normalizados, U também é normalizado)
 
+    # Verifica se os vetores são nulos antes de normalizar
+    if all(component == 0 for component in N):
+        N = [0.0001, 0.0001, 0.0001]
+    if all(component == 0 for component in V):
+        V = [0.0001, 0.0001, 0.0001]
+    if all(component == 0 for component in U):
+        U = [0.0001, 0.0001, 0.0001]
 
     # Matriz de transformação de camera
     transf_matrix= [[U[0], U[1], U[2],  0],

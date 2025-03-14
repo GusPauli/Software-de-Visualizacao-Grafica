@@ -5,16 +5,26 @@ from config import *
 
 # Vetor para armazenar superfícies
 superficies = []
-superfices_tela = []
-inp = []
-outp = []
-att_inp = []
 index = 0
 
 def att_vrp():
+    # Atualiza o VRP da câmera
     CAMERA.VRP[0] = dpg.get_value("vrp_x")
     CAMERA.VRP[1] = dpg.get_value("vrp_y")
     CAMERA.VRP[2] = dpg.get_value("vrp_z")
+    
+    # Recalcula os pontos da malha com base no novo VRP
+    for superficie in superficies:
+        superficie.control_points_tela, superficie.surface_points_tela = pipeline(
+            DESENHO.PERS, superficie.control_points, superficie.surface_points, 
+            CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
+            WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], 
+            DESENHO.VP_max[0], DESENHO.VP_max[1]
+        )
+    
+    # Redesenha a malha
+    desenha(superficies)
+
 
 def att_fonte_luz():
     pass  # Implemente conforme necessário
@@ -58,23 +68,48 @@ def surface_callback():
 
     desenha(superficies)  # Renderiza a superfície na tela
 
-def limpa_tela():
-    dpg.delete_item("main_drawlist", children_only=True)
+def limpa_tela(user_data):
+    if user_data == "limpa":
+       dpg.delete_item("main_drawlist", children_only=True)
+       superficies.clear()
+    else:
+        dpg.delete_item("main_drawlist", children_only=True)
+    
+    
 
 def desenha(listas):
-    limpa_tela()  # Limpa a tela antes de desenhar
+    limpa_tela("vazio")  # Limpa a tela antes de desenhar
     for superficie in listas:
         superficie.desenha_wireframe()
 
-def reabrir_janela():
-    dpg.show_item("janela_com_abas")
+def reabrir_janela(user_data):
+    if user_data == "menu":
+        dpg.show_item("janela_com_abas")
+    else:
+        dpg.show_item("desenho")
 
 # Configuração inicial do Dear PyGui
 dpg.create_context()
 
 # Cria uma área de desenho
-with dpg.window(label="Janela de Desenho", width=WINDOW.WIDTH, height=WINDOW.HEIGHT):
+with dpg.window(label="Janela de Desenho", width=WINDOW.WIDTH, height=WINDOW.HEIGHT, tag="desenho"):
     dpg.add_drawlist(width=WINDOW.WIDTH, height=WINDOW.HEIGHT, tag="main_drawlist")
+
+with dpg.viewport_menu_bar():
+    with dpg.menu(label="File"):
+        dpg.add_menu_item(label="Save", callback='')
+        dpg.add_menu_item(label="Save As", callback='')
+
+        with dpg.menu(label="Settings"):
+            dpg.add_menu_item(label="Setting 1", callback='', check=True)
+            dpg.add_menu_item(label="Setting 2", callback='')
+
+    dpg.add_menu_item(label="Help", callback='')
+
+    with dpg.menu(label="Tela"):
+        dpg.add_button(label="Limpar tela", callback=limpa_tela, user_data="limpa")
+        dpg.add_button(label="Abrir Menu", callback=reabrir_janela, user_data="menu")
+        dpg.add_button(label="Abrir tela de Desenho", callback=reabrir_janela)
 
 # Cria a janela com abas
 with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_abas"):
@@ -94,7 +129,7 @@ with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_a
             with dpg.group(horizontal=True):
                 dpg.add_input_int(label="Width", tag="width", default_value=WINDOW.HEIGHT, width=80)
                 dpg.add_input_int(label="Height", tag="height", default_value=WINDOW.HEIGHT, width=80)
-            dpg.add_button(label="Aplicar", callback=att_vrp)
+            dpg.add_button(label="Aplicar", callback='')
 
         with dpg.tab(label="Transformações", tag="transf"):
             dpg.add_text("Editar posição da Câmera")
