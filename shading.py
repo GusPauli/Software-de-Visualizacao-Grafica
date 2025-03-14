@@ -3,18 +3,33 @@ from pygame import *
 from buffer import *
 from superfice import XYZ
 
+class face:
+    def __init__(self, lista_vertices):
+        self.vertices = lista_vertices
+        self.centroide = self.calc_centroid()
+        self.vetor_normal = self.calc_vetor_normal()
+    
+    def calc_centroid(self):
+        centroide = XYZ(0, 0, 0)
+        for vertice in self.lista_vertices:
+            centroide.x += vertice.x
+            centroide.y += vertice.y
+            centroide.z += vertice.z
+        centroide.x = centroide.x/len(self.lista_vertices)
+        centroide.y = centroide.y/len(self.lista_vertices)
+        centroide.z = centroide.z/len(self.lista_vertices)
+        return centroide
+    
+    def calc_vetor_normal(self):
+        ver_a, ver_b, ver_c = self.lista_vertices[0], self.lista_vertices[1], self.lista_vertices[2]
+        vec_b_a = [ver_a.x-ver_b.x, ver_a.y-ver_b.y, ver_a.z-ver_b.z]
+        vec_b_c = [ver_c.x-ver_b.x, ver_c.y-ver_b.y, ver_c.z-ver_b.z]
+        return normalize(cross(vec_b_c, vec_b_a))
+
 def normal(vA, vB, vC):
     B_A = [vB.x-vA.x, vB.y-vA.y, vB.z-vA.z]
     B_C = [vB.x-vC.x, vB.y-vC.y, vB.z-vC.z]
     return normalize(cross(B_C, B_A))
-
-def f_centroid(obj, vertices): #obj[vertice][coord]
-    x, y, z = 0, 0, 0
-    for v in vertices:
-        x += obj[v].x
-        y += obj[v].y
-        z += obj[v].z
-    return(x/len(vertices), y/len(vertices), z/len(vertices))
 
 def It_calc(Ia, Id, Is):
     ITr = Ia[0]+Id[0]+Is[0]
