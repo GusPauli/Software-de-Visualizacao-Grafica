@@ -45,7 +45,7 @@ def visibility(malha, VRP):
         vB_C = [x3-x2, y3-y2, z3-z2]
         
         # normal = vB_C x vB_A
-        normal = cross(vB_A,vB_C)
+        normal = cross(vB_C,vB_A)
         
         # Normalize the normal vector
         modulo = sqrt((normal[0]**2) + (normal[1]**2) + (normal[2]**2))

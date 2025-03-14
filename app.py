@@ -2,17 +2,14 @@ import dearpygui.dearpygui as dpg
 from superfice import *
 from pipeline import *
 from config import *
+from numpy import matmul
 
 # Vetor para armazenar superfícies
 superficies = []
 index = 0
+NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ, grau= None, None, None, None, None, None, None
 
-def att_vrp():
-    # Atualiza o VRP da câmera
-    CAMERA.VRP[0] = dpg.get_value("vrp_x")
-    CAMERA.VRP[1] = dpg.get_value("vrp_y")
-    CAMERA.VRP[2] = dpg.get_value("vrp_z")
-    
+def recalc():
     # Recalcula os pontos da malha com base no novo VRP
     for superficie in superficies:
         superficie.control_points_tela, superficie.surface_points_tela = pipeline(
@@ -21,10 +18,56 @@ def att_vrp():
             WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], 
             DESENHO.VP_max[0], DESENHO.VP_max[1]
         )
+
+def att_inp(mat):
+    # Aplica a translação a cada superfície
+    for superficie in superficies:
+        # Converte os pontos de controle para coordenadas homogêneas
+        pontos_homogeneos = []
+        for linha in superficie.control_points:
+            pontos_linha = []
+            for ponto in linha:
+                # Adiciona a coordenada homogênea (1)
+                pontos_linha.append([ponto.x, ponto.y, ponto.z, 1])
+            pontos_homogeneos.append(pontos_linha)
+        
+        # Aplica a translação a cada ponto
+        pontos_transformados = []
+        for linha in pontos_homogeneos:
+            pontos_linha = []
+            for ponto in linha:
+                #print(ponto)
+                ponto_transformado = matmul(mat, ponto)
+                # Remove a coordenada homogênea e converte de volta para XYZ
+                pontos_linha.append(XYZ(ponto_transformado[0], ponto_transformado[1], ponto_transformado[2]))
+            pontos_transformados.append(pontos_linha)
+        
+        # Atualiza os pontos de controle da superfície
+        inp = pontos_transformados
+
+        # Cria uma nova superfície com os pontos de controle atualizados
+        nova_superficie = spline_surface(NI, NJ, TI,TJ, RESOLUTIONI, RESOLUTIONJ,1111,inp)
+
+        # Remove a superfície antiga da lista (se necessário)
+        if superficies:
+            superficies.pop()
+
+        # Adiciona a nova superfície à lista
+        superficies.append(nova_superficie)
+        
+        recalc()
+
+
+def att_vrp():
+    # Atualiza o VRP da câmera
+    CAMERA.VRP[0] = dpg.get_value("vrp_x")
+    CAMERA.VRP[1] = dpg.get_value("vrp_y")
+    CAMERA.VRP[2] = dpg.get_value("vrp_z")
     
+    # Recalcula os pontos da malha com base no novo VRP
+    recalc()    
     # Redesenha a malha
     desenha(superficies)
-
 
 def att_fonte_luz():
     pass  # Implemente conforme necessário
@@ -38,14 +81,24 @@ def print_vet(inp):
                 print(f"inp[{i}][{j}]: Tipo de dado inesperado - {point}")
 
 def translada():
+    # Obtém os valores de translação dos inputs
     x = dpg.get_value("translada_x")
     y = dpg.get_value("translada_y")
     z = dpg.get_value("translada_z")
+    
+    # Cria a matriz de translação
     trans = Traslacao(x, y, z)
-    # Aplica a translação aos pontos de controle e regenera a malha
+    
+    att_inp(trans)
+
+    # Redesenha a malha
+    desenha(superficies)
 
 def rotaciona(sender, app_data, user_data):
-    grau = dpg.get_value("Grau")
+    global grau
+    
+    grau = dpg.get_value("grau")
+    print(grau)
     if user_data == "X":
         mat = Rotacao_em_x(grau)
     elif user_data == "Y":
@@ -54,9 +107,21 @@ def rotaciona(sender, app_data, user_data):
         mat = rotacao_em_z(grau)
     elif user_data == "E":
         mat = Escala(grau)
-    # Aplica a transformação aos pontos de controle e regenera a malha
+
+    for superficie in superficies:
+        x,y,z = superficie.centroide
+        print(mat)
+        trans = Traslacao(-x,-y,-z)
+        att_inp(trans)
+        att_inp(mat)
+        trans=Traslacao(x,y,z)
+        att_inp(trans)
+        # Redesenha a malha
+    desenha(superficies)
+
 
 def surface_callback():
+    global NI, NJ, TI,TJ, RESOLUTIONI, RESOLUTIONJ
     NI = dpg.get_value("input_NI")
     NJ = dpg.get_value("input_NJ")
     TI = dpg.get_value("input_TI")
@@ -69,16 +134,14 @@ def surface_callback():
     desenha(superficies)  # Renderiza a superfície na tela
 
 def limpa_tela(user_data):
-    if user_data == "limpa":
-       dpg.delete_item("main_drawlist", children_only=True)
-       superficies.clear()
-    else:
-        dpg.delete_item("main_drawlist", children_only=True)
+    global superficies
+    dpg.delete_item("main_drawlist", children_only=True)
+    superficies.clear()
     
     
 
 def desenha(listas):
-    limpa_tela("vazio")  # Limpa a tela antes de desenhar
+    dpg.delete_item("main_drawlist", children_only=True)
     for superficie in listas:
         superficie.desenha_wireframe()
 

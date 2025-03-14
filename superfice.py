@@ -12,6 +12,35 @@ class XYZ:
         self.y = y
         self.z = z
 
+def calcular_centroide(self):
+    soma_x = 0
+    soma_y = 0
+    soma_z = 0
+    total_pontos = 0
+    
+    for ponto in self.control_points:
+        # Verificando se o ponto é iterável (lista, tupla, etc)
+        if hasattr(ponto, '__iter__') and not isinstance(ponto, (str, bytes)):
+            # Se for uma coleção, processar cada elemento
+            for sub_ponto in ponto:
+                soma_x += sub_ponto.x
+                soma_y += sub_ponto.y
+                soma_z += sub_ponto.z
+                total_pontos += 1
+        else:
+            # Se for um único objeto XYZ
+            soma_x += ponto.x
+            soma_y += ponto.y
+            soma_z += ponto.z
+            total_pontos += 1
+    
+    if total_pontos > 0:
+        centroide = (soma_x / total_pontos, soma_y / total_pontos, soma_z / total_pontos)
+    else:
+        centroide = (0, 0, 0)
+        
+    return centroide
+
 def desenha_pontos(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, raio = None,cor_pontos=(255, 255, 255), mostrar_indices=False):
     for i, linha in enumerate(matriz_pontos):
         for j, ponto in enumerate(linha):
@@ -232,6 +261,7 @@ class spline_surface:
 
         self.visible_points, self.visible_faces, self.faces = visibility(self.surface_points, CAMERA.VRP)
 
+        self.centroide = calcular_centroide(self)
 
     def desenha_wireframe(self):
         desenha_pontos(self.control_points_tela,cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
@@ -242,5 +272,5 @@ class spline_surface:
                                                                                            # Vermelho para arestas não visíveis
         )
         # Desenha apenas os pontos visíveis da superfície em verde
-        desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
-                        pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
+        #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
+                       # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
