@@ -2,7 +2,7 @@ from math import sqrt
 from numpy import matmul
 from math import *
 from numba import njit
-from superfice import XYZ
+#from superfice import XYZ
 
 
 def print_vet(inp):

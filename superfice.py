@@ -1,4 +1,7 @@
 import random
+import dearpygui.dearpygui as dpg
+from pipeline import pipeline
+from config import *
 from typing import List, Tuple
 
 # Definição da estrutura XYZ (equivalente à struct XYZ em C)
@@ -7,6 +10,28 @@ class XYZ:
         self.x = x
         self.y = y
         self.z = z
+
+def desenha_pontos(matriz_pontos, cor_pontos=(255, 255, 255)):
+        for linha in matriz_pontos:
+            for ponto in linha:
+                x, y, z = ponto  # Assumindo que cada ponto é [x, y, z]
+                dpg.draw_circle([x, y], radius=1, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
+
+def desenha_malha(matriz_pontos, cor_linha=(255, 255, 255)):
+    num_linhas = len(matriz_pontos)
+    if num_linhas == 0:
+        return
+    num_colunas = len(matriz_pontos[0])
+    for i in range(num_linhas):
+        for j in range(num_colunas - 1):
+            x1, y1, _ = matriz_pontos[i][j]
+            x2, y2, _ = matriz_pontos[i][j + 1]
+            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
+    for j in range(num_colunas):
+        for i in range(num_linhas - 1):
+            x1, y1, _ = matriz_pontos[i][j]
+            x2, y2, _ = matriz_pontos[i + 1][j]
+            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
 
 class spline_surface:
     def __init__(self, NI: int, NJ: int, TI: int, TJ: int, RESOLUTIONI: int, RESOLUTIONJ: int, seed: int = 1111, inp: List[List[XYZ]] = None):
@@ -146,5 +171,15 @@ class spline_surface:
             intervalJ += incrementJ
         outp[RESOLUTIONI - 1][RESOLUTIONJ - 1] = inp[NI][NJ]
 
+        # Pontos de controle e malha em SRU
         self.control_points = inp
         self.surface_points = outp
+
+        # Pontos de controle e malha em SRC
+        self.control_points_tela, self.surface_points_tela = pipeline(DESENHO.PERS, inp, outp, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
+                                WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
+
+    def desenha_wireframe(self):
+        desenha_pontos(self.control_points_tela, cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
+        desenha_malha(self.surface_points_tela, cor_linha=(0, 0, 255))  # Desenha malha em azul
+        desenha_pontos(self.control_points_tela, cor_pontos=(0, 255, 0))  # Desenha pontos da superfície em verde

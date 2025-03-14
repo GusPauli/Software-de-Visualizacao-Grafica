@@ -55,10 +55,8 @@ def surface_callback():
     RESOLUTIONJ = dpg.get_value("input_ResolutionJ")
 
     superficies.append(spline_surface(NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ))
-    new_inp, new_outp = pipeline(DESENHO.PERS, superficies[0].control_points, superficies[0].surface_points, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
-                                WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
-    superfices_tela.append((new_inp, new_outp))
-    desenha(superfices_tela)  # Renderiza a superfície na tela
+
+    desenha(superficies)  # Renderiza a superfície na tela
 
 def limpa_tela():
     dpg.delete_item("main_drawlist", children_only=True)
@@ -66,32 +64,7 @@ def limpa_tela():
 def desenha(listas):
     limpa_tela()  # Limpa a tela antes de desenhar
     for superficie in listas:
-        pontos_controle, pontos_superficie = superficie
-        desenha_pontos(pontos_controle, cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
-        desenha_malha(pontos_superficie, cor_linha=(0, 0, 255))  # Desenha malha em azul
-        desenha_pontos(pontos_superficie, cor_pontos=(0, 255, 0))  # Desenha pontos da superfície em verde
-
-def desenha_pontos(matriz_pontos, cor_pontos=(255, 255, 255)):
-    for linha in matriz_pontos:
-        for ponto in linha:
-            x, y, z = ponto  # Assumindo que cada ponto é [x, y, z]
-            dpg.draw_circle([x, y], radius=1, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
-
-def desenha_malha(matriz_pontos, cor_linha=(255, 255, 255)):
-    num_linhas = len(matriz_pontos)
-    if num_linhas == 0:
-        return
-    num_colunas = len(matriz_pontos[0])
-    for i in range(num_linhas):
-        for j in range(num_colunas - 1):
-            x1, y1, _ = matriz_pontos[i][j]
-            x2, y2, _ = matriz_pontos[i][j + 1]
-            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
-    for j in range(num_colunas):
-        for i in range(num_linhas - 1):
-            x1, y1, _ = matriz_pontos[i][j]
-            x2, y2, _ = matriz_pontos[i + 1][j]
-            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
+        superficie.desenha_wireframe()
 
 def reabrir_janela():
     dpg.show_item("janela_com_abas")
