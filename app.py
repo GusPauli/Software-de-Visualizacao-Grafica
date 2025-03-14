@@ -54,9 +54,8 @@ def surface_callback():
     RESOLUTIONI = dpg.get_value("input_ResolutionI")
     RESOLUTIONJ = dpg.get_value("input_ResolutionJ")
 
-    inp, outp = generate_spline_surface(NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ)
-    superficies.append((inp, outp))
-    new_inp, new_outp = pipeline(DESENHO.PERS, superficies[0][0], superficies[0][1], CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
+    superficies.append(spline_surface(NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ))
+    new_inp, new_outp = pipeline(DESENHO.PERS, superficies[0].control_points, superficies[0].surface_points, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
                                 WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
     superfices_tela.append((new_inp, new_outp))
     desenha(superfices_tela)  # Renderiza a superfície na tela
