@@ -1,37 +1,8 @@
 from pipeline import normalize, cross, dot
 from pygame import *
-from buffer import *
-from superfice import XYZ
+from buffer import Buffer
 import dearpygui.dearpygui as dpg
-
-class RGB:
-    def __init__(self, red, green, blue):
-        self.red = red
-        self.green = green
-        self.blue = blue
-
-class Face:
-    def __init__(self, lista_vertices):
-        self.vertices = lista_vertices
-        self.centroide = self.calc_centroid()
-        self.vetor_normal = self.calc_vetor_normal()
-    
-    def calc_centroid(self):
-        centroide = XYZ(0, 0, 0)
-        for vertice in self.lista_vertices:
-            centroide.x += vertice.x
-            centroide.y += vertice.y
-            centroide.z += vertice.z
-        centroide.x = centroide.x/len(self.lista_vertices)
-        centroide.y = centroide.y/len(self.lista_vertices)
-        centroide.z = centroide.z/len(self.lista_vertices)
-        return centroide
-    
-    def calc_vetor_normal(self):
-        ver_a, ver_b, ver_c = self.lista_vertices[0], self.lista_vertices[1], self.lista_vertices[2]
-        vec_b_a = [ver_a.x-ver_b.x, ver_a.y-ver_b.y, ver_a.z-ver_b.z]
-        vec_b_c = [ver_c.x-ver_b.x, ver_c.y-ver_b.y, ver_c.z-ver_b.z]
-        return normalize(cross(vec_b_c, vec_b_a))
+from utils import XYZ, RGB
 
 def It_calc(Ia, Id, Is):
     IT = RGB(Ia.red+Id.red+Is.red, Ia.green+Id.green+Is.green, Ia.blue+Id.blue+Is.blue)
@@ -219,7 +190,12 @@ def fillpoly_gouraud(screen, obj, It_vertices, v_faces, zbuffer, imgbuffer):
             for x in range(round(min(x1, x2)), round(max(x1, x2))):
                 screen.set_at((x,y),cor_pixel)'''
 
-def fillpoly(face, tela, shading=0, cor_fundo=RGB(255, 255, 255)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
+def algoritmo_pintor(lista_faces, tela):
+    lista_faces.sort(key=lambda cent: cent.centroide.z)
+    for face in lista_faces:
+        fillpoly(face, tela, 0)
+
+def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
     def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
         list_scanlines = []
         nv = len(face.vertices) # Numero de vertices
@@ -257,7 +233,7 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(255, 255, 255)): # Algoritmo f
             sl.sort()
         return list_scanlines, y_min, y_max
     
-    scanlines, y_min, y_max = scanline_calc()
+    scanlines, y_min, y_max = scanline_calc(face)
     row = y_min
 
     # Fillpoly tradicional, usado para o wireframe. Pinta com uma cor solida definida (cor de fundo)

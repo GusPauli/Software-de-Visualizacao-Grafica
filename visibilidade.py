@@ -5,18 +5,6 @@ def cross(A, B): #A x B = vector
             A[2]*B[0] - A[0]*B[2],
             A[0]*B[1] - A[1]*B[0]]
 
-def processa_malha(malha):
-    faces = [] # Initialize faces list outside the loops
-    for i in range(len(malha) - 1): # Processa todas as linhas exceto a última
-        for j in range(len(malha[i]) - 1): # Processa todas as colunas exceto a última
-            p1 = malha[i][j]
-            p2 = malha[i+1][j]
-            p3 = malha[i+1][j+1]
-            p4 = malha[i][j+1]
-            # Armazena a face (quadrado formado por p1, p2, p3, p4)
-            faces.append([p1, p2, p3, p4])
-    return faces # Return AFTER both loops complete - FIX THE INDENTATION HERE
-
 def print_faces(faces):
     print(f"Total faces: {len(faces)}")
     for i, face in enumerate(faces):
@@ -30,11 +18,11 @@ def visibility(malha, VRP):
     faces_ord = []
     d_values = []  # To collect D values
     
-    faces = processa_malha(malha)
+    faces = malha.lista_faces
     #print(f"Total faces generated: {len(faces)}")  # Debug print
     
     for face in faces:
-        p1, p2, p3, p4 = face
+        p1, p2, p3, p4 = face.vertices
         x1, y1, z1 = p1.x, p1.y, p1.z
         x2, y2, z2 = p2.x, p2.y, p2.z
         x3, y3, z3 = p3.x, p3.y, p3.z

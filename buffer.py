@@ -1,14 +1,17 @@
 import numpy as np
-from superfice import XYZ
+from superfice import XYZ, RGB
 
-class ZBuffer:
-    def __init__(self, width, height):
+class Buffer:
+    def __init__(self, width, height, background_color=RGB(0, 0, 0)):
         self.width = width
         self.height = height
-        self.pBuffer = np.full((width, height), np.inf)
+        self.background_color = background_color
+        self.z_buffer = np.full((width, height), np.NINF)
+        self.image_buffer = np.full((width, height), background_color)
 
-    def clear(self):
-        self.pBuffer.fill(np.inf)
+    def reset(self):
+        self.z_buffer.fill(np.NINF)
+        self.image_buffer(self.background_color)
 
     def at(self, x, y):
 

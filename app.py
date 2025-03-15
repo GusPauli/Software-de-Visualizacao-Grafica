@@ -1,5 +1,6 @@
 import dearpygui.dearpygui as dpg
 from superfice import *
+from shading import *
 from pipeline import *
 from config import *
 from numpy import matmul
