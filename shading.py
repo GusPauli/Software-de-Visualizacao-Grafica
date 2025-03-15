@@ -2,6 +2,7 @@ from pipeline import normalize, cross, dot
 from pygame import *
 from buffer import *
 from superfice import XYZ
+import dearpygui.dearpygui as dpg
 
 class RGB:
     def __init__(self, red, green, blue):
@@ -9,13 +10,11 @@ class RGB:
         self.green = green
         self.blue = blue
 
-class face:
+class Face:
     def __init__(self, lista_vertices):
         self.vertices = lista_vertices
         self.centroide = self.calc_centroid()
         self.vetor_normal = self.calc_vetor_normal()
-        self.iluminacao_face = RGB(0, 0, 0)
-        self.iluminacao_vertices = []
     
     def calc_centroid(self):
         centroide = XYZ(0, 0, 0)
@@ -88,7 +87,6 @@ def somb_const(list_faces, vrp, L, ila, il, ka, kd, ks, n):
 
 
 def fillpoly_constante(screen, obj, It_faces, v_faces, zbuffer, imgbuffer):
-
     for i in range(len(It_faces)):
         R,G,B = It_faces[i]
         cor_pixel = (int(R),int(G),int(B))
@@ -163,7 +161,6 @@ def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
         
     return It_verts
 
-
 def fillpoly_gouraud(screen, obj, It_vertices, v_faces, zbuffer, imgbuffer):
 
     for i in range(len(v_faces)):
@@ -222,6 +219,67 @@ def fillpoly_gouraud(screen, obj, It_vertices, v_faces, zbuffer, imgbuffer):
             for x in range(round(min(x1, x2)), round(max(x1, x2))):
                 screen.set_at((x,y),cor_pixel)'''
 
+def fillpoly(face, tela, shading=0, cor_fundo=RGB(255, 255, 255)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
+    def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
+        list_scanlines = []
+        nv = len(face.vertices) # Numero de vertices
+        y_max, y_min = 0, np.inf
+        for v in face.vertices:
+            if v.y > y_max:
+                y_max = v.y
+            elif v.y < y_min:
+                y_min = v.y
+        ns = y_max - y_min # Numero de scanlines
+
+        for i in range(ns):
+            scanline = []
+            list_scanlines.append(scanline)
+
+        for i in range(nv):
+            x1, y1 = face.vertices[i]
+            x2, y2 = face.vertices[(i+1)%nv]
+            if y2 < y1:
+                xa, ya = x2, y2
+                x2, y2 = x1, y1
+                x1, y1 = xa, ya
+            y1, y2 = y1-y_min, y2-y_min
+            xn = x1
+            if x1 == x2 or y1 == y2:
+                tx = 0
+            else:
+                tx = (x2-x1)/(y2-y1)
+
+            list_scanlines[y1].append(x1)
+            for c in range(y1+1, y2):
+                xn = xn+tx
+                list_scanlines[c].append(int(xn))
+        for sl in list_scanlines:
+            sl.sort()
+        return list_scanlines, y_min, y_max
+    
+    scanlines, y_min, y_max = scanline_calc()
+    row = y_min
+
+    # Fillpoly tradicional, usado para o wireframe. Pinta com uma cor solida definida (cor de fundo)
+    if shading == 0: 
+        for sl in scanlines:
+            for i in range(0, len(sl)-1, 2):
+                dpg.draw_line([sl[i], row], [sl[i+1], row], color=cor_fundo, thickness=1, parent=tela)
+            row = row+1
+    # Fillpoly com sombreamento constante com z-buffer
+    elif shading == 1: 
+        for sl in scanlines: # Percorre entre as scanlines
+            for i in range(0, len(sl)-1, 2): # Percorre entre as interseccoes na scanline
+                x = sl[i]
+                for j in range(sl[i], sl[(i+1)%len(face.vertices)]): # Percorre pelos pixels entre as interseccoes
+                    dpg.draw_line([x, row], [x, row], color=cor_fundo, thickness=1, parent=tela)
+            row = row+1
+    # Fillpoly com sombreamento gouraud
+    elif shading == 2: 
+        for sl in scanlines:
+            for i in range(0, len(sl)-1, 2):
+                dpg.draw_line([sl[i], row], [sl[i+1], row], color=cor_fundo, thickness=1, parent=tela)
+            row = row+1
 
 def fill_triangulo(screen, A, B, C, cor, zbuffer, imgbuffer):
     cor_A_rgb = cor[0]
