@@ -5,12 +5,15 @@ from config import *
 from typing import List, Tuple
 from visibilidade import *
 from utils import XYZ, RGB
+from shading import algoritmo_pintor
+import numpy as np
 
 class Face:
     def __init__(self, lista_vertices):
         self.vertices = lista_vertices
         self.centroide = self.calc_centroid()
         self.vetor_normal = self.calc_vetor_normal()
+        self.depth = np.inf
     
     def calc_centroid(self):
         centroide = XYZ(0, 0, 0)
@@ -301,6 +304,8 @@ class spline_surface:
                                                                                            # Azul para arestas visíveis 
                                                                                            # Vermelho para arestas não visíveis
         )
+
+        algoritmo_pintor(self.faces, "main_drawlist")
         # Desenha apenas os pontos visíveis da superfície em verde
         #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
                        # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde

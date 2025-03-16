@@ -3,6 +3,7 @@ from pygame import *
 from buffer import Buffer
 import dearpygui.dearpygui as dpg
 from utils import XYZ, RGB
+import numpy as np
 
 def It_calc(Ia, Id, Is):
     IT = RGB(Ia.red+Id.red+Is.red, Ia.green+Id.green+Is.green, Ia.blue+Id.blue+Is.blue)
@@ -191,7 +192,6 @@ def fillpoly_gouraud(screen, obj, It_vertices, v_faces, zbuffer, imgbuffer):
                 screen.set_at((x,y),cor_pixel)'''
 
 def algoritmo_pintor(lista_faces, tela):
-    lista_faces.sort(key=lambda cent: cent.centroide.z)
     for face in lista_faces:
         fillpoly(face, tela, 0)
 
@@ -199,12 +199,14 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
     def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
         list_scanlines = []
         nv = len(face.vertices) # Numero de vertices
-        y_max, y_min = 0, np.inf
+        y_max, y_min = 0, 99999
         for v in face.vertices:
             if v.y > y_max:
                 y_max = v.y
             elif v.y < y_min:
-                y_min = v.y
+                y_min = v.y      
+        y_max = int(y_max)
+        y_min = int(y_min)      
         ns = y_max - y_min # Numero de scanlines
 
         for i in range(ns):
@@ -212,23 +214,29 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
             list_scanlines.append(scanline)
 
         for i in range(nv):
-            x1, y1 = face.vertices[i]
-            x2, y2 = face.vertices[(i+1)%nv]
+            x1, y1 = int(face.vertices[i].x), int(face.vertices[i].y)
+            x2, y2 = int(face.vertices[(i+1)%nv].x), int(face.vertices[(i+1)%nv].y)
+            print(x1, y1, x2, y2)
             if y2 < y1:
                 xa, ya = x2, y2
                 x2, y2 = x1, y1
                 x1, y1 = xa, ya
             y1, y2 = y1-y_min, y2-y_min
             xn = x1
-            if x1 == x2 or y1 == y2:
-                tx = 0
+            print(y1, y2, y_max)
+            if y1+y_min == y2+y_min == y_max:
+                list_scanlines[y1-1].append(x1)
+                list_scanlines[y1-1].append(x2)
             else:
-                tx = (x2-x1)/(y2-y1)
-
-            list_scanlines[y1].append(x1)
-            for c in range(y1+1, y2):
-                xn = xn+tx
-                list_scanlines[c].append(int(xn))
+                if x1 == x2 or y1 == y2:
+                    tx = 0
+                else:
+                    tx = (x2-x1)/(y2-y1)
+                print(y1)
+                list_scanlines[y1].append(x1)
+                for c in range(y1+1, y2):
+                    xn = xn+tx
+                    list_scanlines[c].append(int(xn))
         for sl in list_scanlines:
             sl.sort()
         return list_scanlines, y_min, y_max

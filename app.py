@@ -138,8 +138,6 @@ def limpa_tela(user_data):
     global superficies
     dpg.delete_item("main_drawlist", children_only=True)
     superficies.clear()
-    
-    
 
 def desenha(listas):
     dpg.delete_item("main_drawlist", children_only=True)
