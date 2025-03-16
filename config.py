@@ -1,4 +1,5 @@
 import pygame
+from utils import XYZ, RGB
 
 class WINDOW: # Definições da janela
     WIDTH = 800
@@ -37,9 +38,9 @@ class CAMERA:
 
 
 class Fonte_Luz:
-    pos = [300, 300, 1200] #posicao da fonte de luz
-    ila = [60, 40, 50] #luz ambiente
-    il = [200, 200, 210] #intensidade da fonte de luz
+    pos = XYZ(300, 300, 1200) #posicao da fonte de luz
+    ila = RGB(60, 40, 50) #luz ambiente
+    il = RGB(200, 200, 210) #intensidade da fonte de luz
     #material
     Ka = [0.3, 0.6, 0.4]
     Kd = [0.3, 0.6, 0.8] #fator luz difusa

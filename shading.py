@@ -4,6 +4,7 @@ from buffer import Buffer
 import dearpygui.dearpygui as dpg
 from utils import XYZ, RGB
 import numpy as np
+from config import Fonte_Luz, CAMERA, WINDOW
 
 def It_calc(Ia, Id, Is):
     IT = RGB(Ia.red+Id.red+Is.red, Ia.green+Id.green+Is.green, Ia.blue+Id.blue+Is.blue)
@@ -25,53 +26,35 @@ def It_calc(Ia, Id, Is):
 
     return IT
 
-def somb_const(list_faces, vrp, L, ila, il, ka, kd, ks, n):
-    It_faces = []
-    for fc in list_faces:
-        centroide = fc.centroide
-        N = fc.vetor_normal #normal da face
-        L_dir = normalize([L.x-centroide.x,  L.y-centroide.y,  L.z-centroide.z]) #vetor direção da luz 
+def somb_const(face, vrp, L, ila, il, ka, kd, ks, n):
+    centroide = face.centroide
+    N = face.vetor_normal #normal da face
+    L_dir = normalize([L.x-centroide.x,  L.y-centroide.y,  L.z-centroide.z]) #vetor direção da luz 
 
-        Ia = RGB(ila.red*ka.red, ila.green*ka.green, ila.blue*ka.blue)
+    Ia = RGB(ila.red*ka[0], ila.green*ka[1], ila.blue*ka[2])
 
-        n_dot_l = dot(N, L_dir)
-        if n_dot_l < 0:
-            It_faces.append(It_calc(Ia, RGB(0, 0, 0), RGB(0, 0, 0))) #apenas iluminação ambiente p a face atual
-            continue
-        
-        Id = [il.red*kd.red*n_dot_l,   il.green*kd.green*n_dot_l,   il.blue*kd.blue*n_dot_l]
-        
-        aux =        [   2*n_dot_l*N.x,       2*n_dot_l*N.y,       2*n_dot_l*N.z   ] 
-        r = normalize([ aux.x-L_dir.x,      aux.y-L_dir.y,      aux.z-L_dir.z  ])
-        s = normalize([vrp.x-centroide.x,   vrp.y-centroide.y,   vrp.z-centroide,z])
-        r_dot_s = dot(r, s)
+    n_dot_l = dot(N, L_dir)
+    if n_dot_l < 0:
+        it_face = It_calc(Ia, RGB(0, 0, 0), RGB(0, 0, 0)) #apenas iluminação ambiente p a face atual
+        return it_face
+    
+    Id = RGB(il.red*kd[0]*n_dot_l,   il.green*kd[1]*n_dot_l,   il.blue*kd[2]*n_dot_l)
+    
+    aux =        [   2*n_dot_l*N[0],       2*n_dot_l*N[1],       2*n_dot_l*N[2]   ] 
+    r = normalize([ aux[0]-L_dir[0],      aux[1]-L_dir[1],      aux[2]-L_dir[2]  ])
+    s = normalize([vrp[0]-centroide.x,   vrp[1]-centroide.y,   vrp[2]-centroide.z])
+    r_dot_s = dot(r, s)
 
-        if r_dot_s < 0:
-            It_faces.append(It_calc(Ia, Id, RGB(0, 0, 0))) #apenas iluminação ambiente e difusa p a face atual
-            continue
-        
-        aux = r_dot_s**n
-        Is = [il.red*ks.red*aux,  il.green*ks.green*aux,  il.blue*ks.blue*aux]
+    if r_dot_s < 0:
+        it_face = It_calc(Ia, Id, RGB(0, 0, 0)) #apenas iluminação ambiente e difusa p a face atual
+        return it_face
+    
+    aux = r_dot_s**n
+    Is = RGB(il.red*ks[0]*aux,  il.green*ks[1]*aux,  il.blue*ks[2]*aux)
 
-        It_faces.append(It_calc(Ia, Id, Is))
+    it_face = It_calc(Ia, Id, Is)
 
-    return It_faces
-
-
-def fillpoly_constante(screen, obj, It_faces, v_faces, zbuffer, imgbuffer):
-    for i in range(len(It_faces)):
-        R,G,B = It_faces[i]
-        cor_pixel = (int(R),int(G),int(B))
-        a,b,c,d = v_faces[i]
-
-
-        #abc = triangulo1
-        #acd = triangulo2
-        ABC = sorted([obj[a], obj[b], obj[c]], key=lambda ponto: ponto[1])
-        fill_triangulo(screen, ABC[0], ABC[1], ABC[2], cor_pixel,zbuffer,imgbuffer)
-
-        ABC = sorted([obj[a], obj[c], obj[d]], key=lambda ponto: ponto[1])
-        fill_triangulo(screen, ABC[0], ABC[1], ABC[2], cor_pixel,zbuffer,imgbuffer)
+    return it_face
 
 def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
 
@@ -191,11 +174,89 @@ def fillpoly_gouraud(screen, obj, It_vertices, v_faces, zbuffer, imgbuffer):
             for x in range(round(min(x1, x2)), round(max(x1, x2))):
                 screen.set_at((x,y),cor_pixel)'''
 
-def algoritmo_pintor(lista_faces, tela):
-    for face in lista_faces:
-        fillpoly(face, tela, 0)
+def algoritmo_pintor(lista_faces_tela, lista_faces, tela):
+    fillpoly(lista_faces_tela, lista_faces, tela, 0)
 
-def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
+def pintar_constante(lista_faces_tela, lista_faces, tela):
+    def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
+        list_scanlines = []
+        nv = len(face.vertices) # Numero de vertices
+        y_max, y_min = 0, 99999
+        for v in face.vertices:
+            if v.y > y_max:
+                y_max = v.y
+            if v.y < y_min:
+                y_min = v.y      
+        y_max = int(y_max)
+        y_min = int(y_min)      
+        ns = y_max - y_min # Numero de scanlines
+
+        for i in range(ns):
+            scanline = []
+            list_scanlines.append(scanline)
+
+        for i in range(nv):
+            x1, y1, z1 = int(face.vertices[i].x), int(face.vertices[i].y), int(face.vertices[i].z)
+            x2, y2, z2 = int(face.vertices[(i+1)%nv].x), int(face.vertices[(i+1)%nv].y), int(face.vertices[(i+1)%nv].z)
+            if y2 < y1:
+                xa, ya, za = x2, y2, z2
+                x2, y2, z2 = x1, y1, z1
+                x1, y1, z1 = xa, ya, za
+            y1, y2 = y1-y_min, y2-y_min
+            xn = x1
+            zn = z1
+            if y1+y_min != y_max or y2+y_min != y_max:
+                if x1 == x2 or y1 == y2:
+                    tx = 0
+                else:
+                    tx = (x2-x1)/(y2-y1)
+                if z1 == z2 or y1 == y2:
+                    tz = 0
+                else:
+                    tz = (z2-z1)/(y2-y1)
+
+                list_scanlines[y1].append((x1, z1))
+                for c in range(y1+1, y2):
+                    xn = xn+tx
+                    zn = zn+tz
+                    list_scanlines[c].append((int(xn), int(zn)))
+        for sl in list_scanlines:
+            sl.sort(key=lambda z: z[0])
+        return list_scanlines, y_min, y_max
+    
+    # Preenche o buffer
+    buffer = Buffer(WINDOW.WIDTH, WINDOW.HEIGHT)
+    for i in range(len(lista_faces_tela)):
+        cor = somb_const(lista_faces[i], CAMERA.VRP, Fonte_Luz.pos, Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n)
+        scanlines, y_min, y_max = scanline_calc(lista_faces_tela[i])
+        for i, scanline in enumerate(scanlines):
+            x1 = scanline[0][0]
+            x2 = scanline[1][0]
+            z1 = scanline[0][1]
+            z2 = scanline[1][1]
+            if z1 == z2 or x1 == x2:
+                tz = 0
+            else:
+                tz = (z2-z1)/(x2-x1)
+            zn = z1
+            for j in range(x1, x2):
+                print(zn)
+                buffer.test_and_set(j, i+y_min, zn, cor)
+                zn += tz
+    
+    # Pinta a tela com base no buffer
+    for i in range(WINDOW.WIDTH-1):
+        #print()
+        for j in range(WINDOW.HEIGHT-1):
+            #print(i, j)
+            #print(buffer.z_buffer[i, j], end=" ")
+            dpg.draw_line((i, j), (i, j), color=buffer.image_buffer[i, j], thickness=1, parent=tela)
+
+
+def pintar_gouraud(lista_faces_tela, lista_faces, tela):
+    fillpoly(lista_faces_tela, lista_faces, tela, 2)
+
+def fillpoly(lista_faces_tela, lista_faces, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
     def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
         list_scanlines = []
         nv = len(face.vertices) # Numero de vertices
@@ -216,20 +277,17 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
         for i in range(nv):
             x1, y1 = int(face.vertices[i].x), int(face.vertices[i].y)
             x2, y2 = int(face.vertices[(i+1)%nv].x), int(face.vertices[(i+1)%nv].y)
-            print(x1, y1, x2, y2)
             if y2 < y1:
                 xa, ya = x2, y2
                 x2, y2 = x1, y1
                 x1, y1 = xa, ya
             y1, y2 = y1-y_min, y2-y_min
             xn = x1
-            print(x1, y1, x2, y2, y_min, y_max)
             if y1+y_min != y_max or y2+y_min != y_max:
                 if x1 == x2 or y1 == y2:
                     tx = 0
                 else:
                     tx = (x2-x1)/(y2-y1)
-                print(y1)
                 list_scanlines[y1].append(x1)
                 for c in range(y1+1, y2):
                     xn = xn+tx
@@ -238,117 +296,34 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
             sl.sort()
         return list_scanlines, y_min, y_max
     
-    scanlines, y_min, y_max = scanline_calc(face)
-    row = y_min
+    for i in range(len(lista_faces_tela)):
+        scanlines, y_min, y_max = scanline_calc(lista_faces_tela[i])
+        row = y_min
 
-    # Fillpoly tradicional, usado para o wireframe. Pinta com uma cor solida definida (cor de fundo)
-    if shading == 0: 
-        for sl in scanlines:
-            for i in range(0, len(sl)-1, 2):
-                dpg.draw_line([sl[i], row], [sl[i+1], row], color=cor_fundo, thickness=1, parent=tela)
-            row = row+1
-    # Fillpoly com sombreamento constante com z-buffer
-    elif shading == 1: 
-        for sl in scanlines: # Percorre entre as scanlines
-            for i in range(0, len(sl)-1, 2): # Percorre entre as interseccoes na scanline
-                x = sl[i]
-                for j in range(sl[i], sl[(i+1)%len(face.vertices)]): # Percorre pelos pixels entre as interseccoes
-                    dpg.draw_line([x, row], [x, row], color=cor_fundo, thickness=1, parent=tela)
-            row = row+1
-    # Fillpoly com sombreamento gouraud
-    elif shading == 2: 
-        for sl in scanlines:
-            for i in range(0, len(sl)-1, 2):
-                dpg.draw_line([sl[i], row], [sl[i+1], row], color=cor_fundo, thickness=1, parent=tela)
-            row = row+1
-
-def fill_triangulo(screen, A, B, C, cor, zbuffer, imgbuffer):
-    cor_A_rgb = cor[0]
-    cor_B_rgb = cor[1]
-    cor_C_rgb = cor[2]
-
-    tx_corA_B = tx_corA_C = tx_corB_C = [0.01, 0.01, 0.01] #declaração
-
-    if A[1] == B[1]:
-        txA_B = 0
-        tzA_B = 0
-        tx_corA_B = [0.01, 0.01, 0.01]
-
-        txB_C = (C[0] - B[0]) / (C[1] - B[1])
-        tzB_C = (C[2] - B[2]) / (C[1] - B[1])
-        tx_corB_C = [((1 / (C[1] - B[1])) * (cor_C_rgb[x] - cor_B_rgb[x])) for x in range(len(tx_corB_C))]
-
-    elif B[1] == C[1]:
-        txA_B = (B[0] - A[0]) / (B[1] - A[1])
-        tzA_B = (B[2] - A[2]) / (B[1] - A[1])
-        tx_corA_B = [((1 / (B[1] - A[1])) * (cor_B_rgb[x] - cor_A_rgb[x])) for x in range(len(tx_corA_B))] 
-
-        txB_C = 0 
-        tzB_C = 0
-        tx_corB_C = [0.0, 0.0, 0.0]
-
-    else:
-        txA_B = (B[0] - A[0]) / (B[1] - A[1])
-        tzA_B = (B[2] - A[2]) / (B[1] - A[1])
-        tx_corA_B = [((1 / (B[1] - A[1])) * (cor_B_rgb[x] - cor_A_rgb[x])) for x in range(len(tx_corA_B))]
-
-        txB_C = (C[0] - B[0]) / (C[1] - B[1])    
-        tzB_C = (C[2] - B[2]) / (C[1] - B[1])
-        tx_corB_C = [((1 / (C[1] - B[1])) * (cor_C_rgb[x] - cor_B_rgb[x])) for x in range(len(tx_corB_C))]
-
-    txA_C = (C[0] - A[0]) / (C[1] - A[1])
-    tzA_C = (C[2] - A[2]) / (C[1] - A[1])
-    tx_corA_C = [((1 / (C[1] - A[1])) * (cor_C_rgb[x] - cor_A_rgb[x])) for x in range(len(tx_corA_C))]
-
-    x1 = x2 = A[0]
-    z1 = z2 = A[2]
-    corA_B = corA_C = cor_A_rgb
-
-    for y in range((int(A[1]+1)), (int(C[1] - 1))):
-        if (y < B[1]):
-            x1 += txA_B
-            z1 += tzA_B
-            corA_B = [x + y for x, y in zip(corA_B, tx_corA_B)]
-
-        elif (y == B[1]):
-            x1 = B[0]
-            z1 = B[2]
-            corA_B = cor_B_rgb
-        else:
-            x1 += txB_C
-            z1 += tzB_C
-            corA_B = [x + y for x, y in zip(corA_B, tx_corB_C)]
-
-        x2 += txA_C
-        z2 += tzA_C
-        corA_C = [i + j for i, j in zip(corA_C, tx_corA_C)]
-
-
-
-        tx_cor_pixel = [0.01, 0.01, 0.01]
-        tx_cor_pixel = [((1 / abs(x2 - x1)) * (corA_C[x] - corA_B[x])) for x in range(len(tx_cor_pixel))]
-
-        if (x1<x2):
-            tzX1_X2 = ((z2-z1) / (x2-x1))
-            zint = z1
-            cor_pixel = corA_B
-            tx_cor_pixel = [((corA_C[x] - corA_B[x]) / (x2 - x1)) for x in range(len(tx_cor_pixel))]
-        else:
-            tzX1_X2 = ((z1-z2) / (x1-x2))
-            zint = z2
-            cor_pixel = corA_C
-            tx_cor_pixel = [((corA_B[x] - corA_C[x]) / (x1 - x2)) for x in range(len(tx_cor_pixel))]
-
-
-        for x in range(round(min(x1, x2)), (round(max(x1, x2)))):
-            cor_pixel = [x + y for x, y in zip(cor_pixel, tx_cor_pixel)]
-            cor_pixel_int = [int(round(x)) for x in cor_pixel]
-            pixel = imgbuffer.get_pixel(x,y) #pega a posição no buffer de imagem
-            if np.all(pixel != [0,0,0]): #se for diferente de (0,0,0) ja esta pintado
-                if zbuffer.test_and_set(round(x),round(y),round(zint)): #verifica se o z em processamento é maior ou menor que o z armazenado
-                    imgbuffer.put_pixel(round(x),round(y),cor) #atualiza o buffer de imagem
-                    screen.set_at((x,y),cor) #pinta a tela
-            else:
-                imgbuffer.put_pixel(round(x),round(y),cor)
-                screen.set_at((x,y),cor)
-            zint+=tzX1_X2
+        # Fillpoly tradicional, usado para o wireframe. Pinta com uma cor solida definida (cor de fundo)
+        if shading == 0: 
+            for j in range(len(scanlines)):
+                for i in range(0, len(scanlines[j])-1, 2):
+                    dpg.draw_line([scanlines[j][i]+1, row], [scanlines[j][i+1], row], color=cor_fundo, thickness=1, parent=tela)
+                row = row+1
+        # Fillpoly com sombreamento constante com z-buffer
+        """elif shading == 1: 
+            cor = somb_const(lista_faces[i], CAMERA.VRP, Fonte_Luz.pos, Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n)
+            for sl in scanlines: # Percorre entre as scanlines
+                for i in range(0, len(sl)-1, 2): # Percorre entre as interseccoes na scanline
+                    x = sl[i]
+                    for j in range(sl[i], sl[(i+1)%len(lista_faces_tela[i].vertices)]): # Percorre pelos pixels entre as interseccoes
+                        
+                row = row+1
+            for sl in scanlines: # Percorre entre as scanlines
+                for i in range(0, len(sl)-1, 2): # Percorre entre as interseccoes na scanline
+                    x = sl[i]
+                    for j in range(sl[i], sl[(i+1)%len(lista_faces_tela[i].vertices)]): # Percorre pelos pixels entre as interseccoes
+                        dpg.draw_line([x, row], [x, row], color=cor, thickness=1, parent=tela)
+                row = row+1
+        # Fillpoly com sombreamento gouraud
+        elif shading == 2: 
+            for sl in scanlines:
+                for i in range(0, len(sl)-1, 2):
+                    dpg.draw_line([sl[i], row], [sl[i+1], row], color=cor_fundo, thickness=1, parent=tela)
+                row = row+1"""

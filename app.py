@@ -221,25 +221,25 @@ with dpg.window(label="Menu principal", width=320, height=400, tag="janela_com_a
         with dpg.tab(label="Elementos da Luz", tag="tab3"):
             dpg.add_text("Editar Posição da Fonte de Luz")
             with dpg.group(horizontal=True):
-                dpg.add_input_int(label="X", tag="pos_x", default_value=Fonte_Luz.pos[0], width=80)
-                dpg.add_input_int(label="Y", tag="pos_y", default_value=Fonte_Luz.pos[1], width=80)
-                dpg.add_input_int(label="Z", tag="pos_z", default_value=Fonte_Luz.pos[2], width=80)
+                dpg.add_input_int(label="X", tag="pos_x", default_value=Fonte_Luz.pos.x, width=80)
+                dpg.add_input_int(label="Y", tag="pos_y", default_value=Fonte_Luz.pos.y, width=80)
+                dpg.add_input_int(label="Z", tag="pos_z", default_value=Fonte_Luz.pos.z, width=80)
             dpg.add_button(label="Aplicar", callback=att_fonte_luz, user_data="pos_luz")
             dpg.add_separator()
 
             dpg.add_text("Editar Intensidade da Luz Ambiente")
             with dpg.group(horizontal=True):
-                dpg.add_input_int(label="X", tag="la_x", default_value=Fonte_Luz.ila[0], width=80)
-                dpg.add_input_int(label="Y", tag="la_y", default_value=Fonte_Luz.ila[1], width=80)
-                dpg.add_input_int(label="Z", tag="la_z", default_value=Fonte_Luz.ila[2], width=80)
+                dpg.add_input_int(label="X", tag="la_x", default_value=Fonte_Luz.ila.red, width=80)
+                dpg.add_input_int(label="Y", tag="la_y", default_value=Fonte_Luz.ila.green, width=80)
+                dpg.add_input_int(label="Z", tag="la_z", default_value=Fonte_Luz.ila.blue, width=80)
             dpg.add_button(label="Aplicar", callback=att_fonte_luz, user_data="la")
             dpg.add_separator()
 
             dpg.add_text("Editar Intensidade da Fonte de Luz")
             with dpg.group(horizontal=True):
-                dpg.add_input_int(label="X", tag="il_x", default_value=Fonte_Luz.il[0], width=80)
-                dpg.add_input_int(label="Y", tag="il_y", default_value=Fonte_Luz.il[1], width=80)
-                dpg.add_input_int(label="Z", tag="il_z", default_value=Fonte_Luz.il[2], width=80)
+                dpg.add_input_int(label="X", tag="il_x", default_value=Fonte_Luz.il.red, width=80)
+                dpg.add_input_int(label="Y", tag="il_y", default_value=Fonte_Luz.il.green, width=80)
+                dpg.add_input_int(label="Z", tag="il_z", default_value=Fonte_Luz.il.blue, width=80)
             dpg.add_button(label="Aplicar", callback=att_fonte_luz, user_data="il")
             dpg.add_separator()
 

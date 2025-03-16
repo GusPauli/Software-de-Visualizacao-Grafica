@@ -5,7 +5,7 @@ from config import *
 from typing import List, Tuple
 from visibilidade import *
 from utils import XYZ, RGB
-from shading import algoritmo_pintor
+from shading import algoritmo_pintor, pintar_constante, pintar_gouraud
 import numpy as np
 
 class Face:
@@ -307,7 +307,8 @@ class spline_surface:
                                                                                            # Vermelho para arestas não visíveis
         )
 
-        algoritmo_pintor(self.lista_faces_tela, "main_drawlist")
+        algoritmo_pintor(self.lista_faces_tela, self.lista_faces, "main_drawlist")
+        pintar_constante(self.lista_faces_tela, self.lista_faces, "main_drawlist")
         # Desenha apenas os pontos visíveis da superfície em verde
         #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
                        # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
