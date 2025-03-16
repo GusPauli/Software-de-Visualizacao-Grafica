@@ -32,10 +32,24 @@ class Face:
         vec_b_c = [ver_c.x-ver_b.x, ver_c.y-ver_b.y, ver_c.z-ver_b.z]
         return normalize(cross(vec_b_c, vec_b_a))
 
+def processa_malha(surface_points):
+        malha = surface_points
+        faces = [] # Initialize faces list outside the loops
+        for i in range(len(malha) - 1): # Processa todas as linhas exceto a última
+            for j in range(len(malha[i]) - 1): # Processa todas as colunas exceto a última
+                p1 = malha[i][j]
+                p2 = malha[i+1][j]
+                p3 = malha[i+1][j+1]
+                p4 = malha[i][j+1]
+                # Armazena a face (quadrado formado por p1, p2, p3, p4)
+                faces.append(Face([p1, p2, p3, p4]))
+        return faces # Return AFTER both loops complete - FIX THE INDENTATION HERE
+
 def desenha_pontos(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, raio = None,cor_pontos=(255, 255, 255), mostrar_indices=False):
     for i, linha in enumerate(matriz_pontos):
         for j, ponto in enumerate(linha):
-            x, y, z = ponto  # Assumindo que cada ponto é [x, y, z]
+            x = ponto.x # Assumindo que cada ponto é um XYZ(x, y, z)
+            y = ponto.y
             
             # Verificar se o ponto é visível (caso fornecido)
             visivel = True
@@ -67,8 +81,8 @@ def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=N
     # Desenhar linhas horizontais
     for i in range(num_linhas):
         for j in range(num_colunas - 1):
-            x1, y1, _ = matriz_pontos[i][j]
-            x2, y2, _ = matriz_pontos[i][j + 1]
+            x1, y1, _ = matriz_pontos[i][j].x, matriz_pontos[i][j].y, matriz_pontos[i][j].z
+            x2, y2, _ = matriz_pontos[i][j + 1].x, matriz_pontos[i][j + 1].y, matriz_pontos[i][j + 1].z
             
             # Definir a cor da linha com base na visibilidade dos pontos
             cor_linha = cor_linha_visivel  # Assume que é visível por padrão
@@ -87,8 +101,8 @@ def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=N
     # Desenhar linhas verticais
     for j in range(num_colunas):
         for i in range(num_linhas - 1):
-            x1, y1, _ = matriz_pontos[i][j]
-            x2, y2, _ = matriz_pontos[i + 1][j]
+            x1, y1, _ = matriz_pontos[i][j].x, matriz_pontos[i][j].y, matriz_pontos[i][j].z
+            x2, y2, _ = matriz_pontos[i + 1][j].x, matriz_pontos[i + 1][j].y, matriz_pontos[i + 1][j].z
             
             # Definir a cor da linha com base na visibilidade dos pontos
             cor_linha = cor_linha_visivel  # Assume que é visível por padrão
@@ -250,7 +264,7 @@ class spline_surface:
         self.control_points_tela, self.surface_points_tela = pipeline(DESENHO.PERS, inp, outp, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
                                 WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
         self.centroide = self.calcular_centroide()
-        self.lista_faces = self.processa_malha()
+        self.lista_faces = processa_malha(self.surface_points)
 
         self.visible_points, self.visible_faces, self.faces = visibility(self, CAMERA.VRP)
 
@@ -283,20 +297,8 @@ class spline_surface:
             
         return centroide
 
-    def processa_malha(self):
-        malha = self.surface_points
-        faces = [] # Initialize faces list outside the loops
-        for i in range(len(malha) - 1): # Processa todas as linhas exceto a última
-            for j in range(len(malha[i]) - 1): # Processa todas as colunas exceto a última
-                p1 = malha[i][j]
-                p2 = malha[i+1][j]
-                p3 = malha[i+1][j+1]
-                p4 = malha[i][j+1]
-                # Armazena a face (quadrado formado por p1, p2, p3, p4)
-                faces.append(Face([p1, p2, p3, p4]))
-        return faces # Return AFTER both loops complete - FIX THE INDENTATION HERE
-
     def desenha_wireframe(self):
+        self.lista_faces_tela = processa_malha(self.surface_points_tela)
         desenha_pontos(self.control_points_tela,cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
 
         desenha_malha(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
@@ -305,7 +307,7 @@ class spline_surface:
                                                                                            # Vermelho para arestas não visíveis
         )
 
-        algoritmo_pintor(self.faces, "main_drawlist")
+        algoritmo_pintor(self.lista_faces_tela, "main_drawlist")
         # Desenha apenas os pontos visíveis da superfície em verde
         #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
                        # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde

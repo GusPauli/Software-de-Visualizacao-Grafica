@@ -150,7 +150,7 @@ def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, v
                     y = viewp_mat[1][0] * point.x + viewp_mat[1][1] * point.y + viewp_mat[1][2] * point.z + viewp_mat[1][3] * 1
                     z = viewp_mat[2][0] * point.x + viewp_mat[2][1] * point.y + viewp_mat[2][2] * point.z + viewp_mat[2][3] * 1
                     # Arredondar para valores inteiros
-                    row_points.append([int(x), int(y), int(z)])
+                    row_points.append(XYZ(x, y, z))
                 else:
                     print(f"Warning: Point at [{i}][{j}] is not an XYZ object")
             transformed_points.append(row_points)
