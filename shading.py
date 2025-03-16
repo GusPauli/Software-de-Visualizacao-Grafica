@@ -240,17 +240,21 @@ def pintar_constante(lista_faces_tela, lista_faces, tela):
                 tz = (z2-z1)/(x2-x1)
             zn = z1
             for j in range(x1, x2):
-                print(zn)
                 buffer.test_and_set(j, i+y_min, zn, cor)
                 zn += tz
-    
+    print("Zbuffer calculado")
     # Pinta a tela com base no buffer
     for i in range(WINDOW.WIDTH-1):
         #print()
         for j in range(WINDOW.HEIGHT-1):
             #print(i, j)
-            #print(buffer.z_buffer[i, j], end=" ")
-            dpg.draw_line((i, j), (i, j), color=buffer.image_buffer[i, j], thickness=1, parent=tela)
+            #print(f"({buffer.image_buffer[i, j].red}, {buffer.image_buffer[i, j].green}, {buffer.image_buffer[i, j].blue})", end=" ")
+            #print(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue)
+            if (buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue) == WINDOW.BACKGROUND:
+                print("Background")
+            else:
+                print("Desenhado")
+                dpg.draw_line((i, j), (i+1, j), color=(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue), thickness=1, parent=tela)
 
 
 def pintar_gouraud(lista_faces_tela, lista_faces, tela):

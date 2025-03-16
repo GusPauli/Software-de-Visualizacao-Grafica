@@ -308,7 +308,9 @@ class spline_surface:
         )
 
         algoritmo_pintor(self.lista_faces_tela, self.lista_faces, "main_drawlist")
-        pintar_constante(self.lista_faces_tela, self.lista_faces, "main_drawlist")
         # Desenha apenas os pontos visíveis da superfície em verde
         #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
                        # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
+    
+    def pinta_constante(self):
+        pintar_constante(self.lista_faces_tela, self.lista_faces, "main_drawlist")

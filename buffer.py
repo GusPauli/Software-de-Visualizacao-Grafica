@@ -2,7 +2,7 @@ import numpy as np
 from superfice import XYZ, RGB
 
 class Buffer:
-    def __init__(self, width, height, background_color=RGB(0, 0, 0)):
+    def __init__(self, width, height, background_color=RGB(255, 255, 255)):
         self.width = width
         self.height = height
         self.background_color = background_color
