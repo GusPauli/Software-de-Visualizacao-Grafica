@@ -224,10 +224,7 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
             y1, y2 = y1-y_min, y2-y_min
             xn = x1
             print(x1, y1, x2, y2, y_min, y_max)
-            if y1+y_min == y2+y_min == y_max:
-                list_scanlines[y1-1].append(x1)
-                list_scanlines[y1-1].append(x2)
-            else:
+            if y1+y_min != y_max or y2+y_min != y_max:
                 if x1 == x2 or y1 == y2:
                     tx = 0
                 else:
