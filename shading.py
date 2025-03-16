@@ -203,7 +203,7 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
         for v in face.vertices:
             if v.y > y_max:
                 y_max = v.y
-            elif v.y < y_min:
+            if v.y < y_min:
                 y_min = v.y      
         y_max = int(y_max)
         y_min = int(y_min)      
@@ -223,7 +223,7 @@ def fillpoly(face, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpol
                 x1, y1 = xa, ya
             y1, y2 = y1-y_min, y2-y_min
             xn = x1
-            print(y1, y2, y_max)
+            print(x1, y1, x2, y2, y_min, y_max)
             if y1+y_min == y2+y_min == y_max:
                 list_scanlines[y1-1].append(x1)
                 list_scanlines[y1-1].append(x2)
