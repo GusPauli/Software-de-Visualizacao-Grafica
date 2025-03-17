@@ -62,8 +62,7 @@ def visibility(malha, VRP):
         
         # Calculate depth for painter's algorithm
         depth = ((VRP[0]-centroide[0])**2 + (VRP[1]-centroide[1])**2 + (VRP[2]-centroide[2])**2)
-        face.depth = depth
-        faces_ord.append(face)
+        faces_ord.append((depth, face))
         
         # If D > 0, observer is in front of the plane
         if D > 0:
@@ -76,6 +75,6 @@ def visibility(malha, VRP):
     #print(f"Negative D values (non-visible faces): {sum(1 for d in d_values if d <= 0)}")
     
     # Sort visible faces by depth
-    faces_ord = sorted(faces_ord, key=lambda d: d.depth, reverse=True)
+    faces_ord = sorted(faces_ord, key=lambda x: x[0], reverse=True)
     
     return visible_points, visible_faces, faces_ord

@@ -1,6 +1,6 @@
 import random
 import dearpygui.dearpygui as dpg
-from pipeline import pipeline, normalize
+from pipeline import pipeline, normalize, camera_transf_mat
 from config import *
 from typing import List, Tuple
 from visibilidade import *
@@ -45,32 +45,32 @@ def processa_malha(surface_points):
                 faces.append(Face([p1, p2, p3, p4]))
         return faces # Return AFTER both loops complete - FIX THE INDENTATION HERE
 
-def desenha_pontos(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, raio = None,cor_pontos=(255, 255, 255), mostrar_indices=False):
+def desenha_pontos(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, raio=7, cor_pontos=(255, 255, 255), mostrar_indices=False):
     for i, linha in enumerate(matriz_pontos):
         for j, ponto in enumerate(linha):
             x = ponto.x # Assumindo que cada ponto é um XYZ(x, y, z)
             y = ponto.y
             
+            ponto_original = matriz_pontos_originais[i][j] if matriz_pontos_originais is not None else ponto
+
             # Verificar se o ponto é visível (caso fornecido)
             visivel = True
-            if matriz_pontos_originais is not None and pontos_visiveis is not None:
-                ponto_original = matriz_pontos_originais[i][j]
+            if pontos_visiveis is not None:
                 if ponto_original not in pontos_visiveis:
                     visivel = False
                     continue  # Pular este ponto se não estiver na lista de visíveis
-        
-            dpg.draw_circle([x, y], radius=3, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
             
-            # Mostrar índice do ponto se necessário
+            # Desenhar o ponto com um raio maior
+            dpg.draw_circle([x, y], radius=raio, color=cor_pontos, fill=cor_pontos, parent="main_drawlist")
+            
+            # Mostrar índice do ponto dentro do círculo
             if mostrar_indices and visivel:
-                # Encontrar o índice na lista de pontos visíveis
-                if matriz_pontos_originais is not None and pontos_visiveis is not None:
-                    ponto_original = matriz_pontos_originais[i][j]
-                    try:
-                        idx = pontos_visiveis.index(ponto_original)
-                        dpg.draw_text([x+2, y+2], f"VP:{idx}", color=cor_pontos, parent="main_drawlist")
-                    except ValueError:
-                        pass  # Se não encontrado em visible_points, não faz nada
+                idx = ponto_original.index  # Acesse o atributo index do objeto XYZ
+                
+                # Centralizar o texto dentro do ponto
+                text_x = x - 5
+                text_y = y - 5 
+                dpg.draw_text([text_x, text_y], f"{idx}", color=(0, 0, 0), parent="main_drawlist")
 
 def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=None, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0)):
     num_linhas = len(matriz_pontos)
@@ -117,9 +117,10 @@ def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=N
             
             # Desenhar a linha com a cor apropriada
             dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
-
+            
 class spline_surface:
     def __init__(self, NI: int, NJ: int, TI: int, TJ: int, RESOLUTIONI: int, RESOLUTIONJ: int, seed: int = 1111, inp: List[List[XYZ]] = None):
+        self.PINTADO = False
         # Função para calcular os nós da spline
         def spline_knots(knots: List[int], n: int, t: int):
             """
@@ -194,7 +195,7 @@ class spline_surface:
                 for j in range(NJ + 1):
                     inp[i][j].x = i * 100
                     inp[i][j].y = j * 100
-                    inp[i][j].z = random.randint(0, 400)
+                    inp[i][j].z = random.randint(-100, 100)
 
         # Arrays para armazenar a superfície gerada
         outp: List[List[XYZ]] = [[XYZ(0, 0, 0) for _ in range(RESOLUTIONJ)] for _ in range(RESOLUTIONI)]
@@ -297,20 +298,35 @@ class spline_surface:
             
         return centroide
 
+    #verifica se o centroide esta dentro do plano de visão
+    def recorte_3d(self):
+        norm_centroide = [self.centroide[0], self.centroide[1], self.centroide[2], 1]
+        min_dist, max_dist = -DESENHO.near, -DESENHO.far
+        camera_trans = camera_transf_mat(CAMERA.VRP, CAMERA.p, CAMERA.Y)
+        centroide_src = np.matmul(camera_trans, norm_centroide)
+        if min_dist >= centroide_src[2] >= max_dist:
+            return True
+        else:
+            return False
+
     def desenha_wireframe(self):
         self.lista_faces_tela = processa_malha(self.surface_points_tela)
-        desenha_pontos(self.control_points_tela,cor_pontos=(255, 0, 0))  # Desenha pontos de controle em vermelho
 
-        desenha_malha(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
-                      pontos_visiveis=self.visible_points, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0) 
-                                                                                           # Azul para arestas visíveis 
-                                                                                           # Vermelho para arestas não visíveis
-        )
+        if self.recorte_3d():
+            desenha_pontos(self.control_points_tela, self.control_points, cor_pontos=(255, 0, 0), mostrar_indices=True)  # Desenha pontos de controle em vermelho
 
-        algoritmo_pintor(self.lista_faces_tela, self.lista_faces, "main_drawlist")
-        # Desenha apenas os pontos visíveis da superfície em verde
-        #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
-                       # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
+            desenha_malha(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
+                        pontos_visiveis=self.visible_points, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0) 
+                                                                                            # Azul para arestas visíveis 
+                                                                                            # Vermelho para arestas não visíveis
+            )
+            algoritmo_pintor(self.lista_faces_tela, self.lista_faces, "main_drawlist")
+            # Desenha apenas os pontos visíveis da superfície em verde
+            #desenha_pontos(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
+                        # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
     
     def pinta_constante(self):
+        print(f"Antes de pintar: PINTADO = {self.PINTADO}")  # Verifica o valor atual
+        self.PINTADO = True
+        print(f"Depois de pintar: PINTADO = {self.PINTADO}")  # Verifica o novo valor
         pintar_constante(self.lista_faces_tela, self.lista_faces, "main_drawlist")

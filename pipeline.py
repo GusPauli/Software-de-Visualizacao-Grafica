@@ -1,8 +1,11 @@
 from math import sqrt
 from numpy import matmul
+from numpy import linalg
 from math import *
 from numba import njit
 from utils import XYZ, RGB
+
+mat_inversa = []
 
 
 def print_vet(inp):
@@ -112,6 +115,7 @@ def camera_viewport_mat(Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax): #Transf
     
 
 def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax):
+    global mat_inversa
     # Calcular a matriz de transformação de câmera
     camera_transf = camera_transf_mat(vrp, p, Y)
     
@@ -136,7 +140,8 @@ def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, v
     # Calcular a matriz final de transformação
     viewport_matrix = camera_viewport_mat(Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax)
     viewp_mat = matmul(viewport_matrix, camera_transf)
-    
+    mat_inversa = linalg.pinv(viewp_mat)
+
     # Função para processar uma matriz de objetos XYZ
     def process_matrix(matrix):
         transformed_points = []
@@ -155,7 +160,8 @@ def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, v
                     print(f"Warning: Point at [{i}][{j}] is not an XYZ object")
             transformed_points.append(row_points)
         return transformed_points
-    
+
+
     # Processar as matrizes de entrada e saída
     inp_transformed = process_matrix(inp)
     outp_transformed = process_matrix(outp)
