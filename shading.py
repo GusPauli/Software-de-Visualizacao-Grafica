@@ -68,7 +68,7 @@ def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
                 vertices[a] = [i]  #adiciona a face na lista de faces do vertice
             else:
                 vertices[a].append(i)
-        f_normals.append(normalize(normal(obj[aux[0]],  obj[aux[1]],  obj[aux[2]]))) #normal unitária de todas as faces
+        f_normals.append(normalize()) #normal unitária de todas as faces
 
     marmota = [] #lista de vertices das faces visíveis
     for v_face in v_faces: #para cada face visível
@@ -242,6 +242,109 @@ def pintar_constante(lista_faces_tela, lista_faces, tela):
             for j in range(x1, x2):
                 buffer.test_and_set(j, i+y_min, zn, cor)
                 zn += tz
+    # Pinta a tela com base no buffer
+    for i in range(WINDOW.WIDTH-1):
+        #print()
+        for j in range(WINDOW.HEIGHT-1):
+            #print(i, j)
+            #print(f"({buffer.image_buffer[i, j].red}, {buffer.image_buffer[i, j].green}, {buffer.image_buffer[i, j].blue})", end=" ")
+            #print(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue)
+            if (buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue) != WINDOW.BACKGROUND:
+                dpg.draw_line((i, j), (i+1, j), color=(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue), thickness=1, parent=tela)
+                
+def pintar_gouraud(lista_faces_tela, lista_faces, RESOLUTIONI, RESOLUTIONJ, tela):
+    def calc_luz_vertic(lista_faces_tela, lista_faces):
+        lista_normal_vec = [RESOLUTIONI][RESOLUTIONJ]
+        for vec in lista_normal_vec:
+            vec = XYZ(0, 0, 0)
+        i = 0
+        j = 0
+        for face in lista_faces:
+            lista_normal_vec[i][j].x += face.vetor_normal.x
+            lista_normal_vec[i][j].y += face.vetor_normal.y
+            lista_normal_vec[i][j].z += face.vetor_normal.z
+            lista_normal_vec[i+1][j].x += face.vetor_normal.x
+            lista_normal_vec[i+1][j].y += face.vetor_normal.y
+            lista_normal_vec[i+1][j].z += face.vetor_normal.z
+            lista_normal_vec[i+1][j+1].x += face.vetor_normal.x
+            lista_normal_vec[i+1][j+1].y += face.vetor_normal.y
+            lista_normal_vec[i+1][j+1].z += face.vetor_normal.z
+            lista_normal_vec[i][j+1].x += face.vetor_normal.x
+            lista_normal_vec[i][j+1].y += face.vetor_normal.y
+            lista_normal_vec[i][j+1].z += face.vetor_normal.z
+            if j == RESOLUTIONJ-1:
+                j = 0
+                i += 1
+        for vec in lista_normal_vec:
+            module = np.sqrt(vec.x**2 + vec.y**2 + vec.z**2)
+            vec.x = vec.x/module
+            vec.y = vec.y/module
+            vec.z = vec.z/module
+
+    def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
+        list_scanlines = []
+        nv = len(face.vertices) # Numero de vertices
+        y_max, y_min = 0, 99999
+        for v in face.vertices:
+            if v.y > y_max:
+                y_max = v.y
+            if v.y < y_min:
+                y_min = v.y      
+        y_max = int(y_max)
+        y_min = int(y_min)      
+        ns = y_max - y_min # Numero de scanlines
+
+        for i in range(ns):
+            scanline = []
+            list_scanlines.append(scanline)
+
+        for i in range(nv):
+            x1, y1, z1 = int(face.vertices[i].x), int(face.vertices[i].y), int(face.vertices[i].z)
+            x2, y2, z2 = int(face.vertices[(i+1)%nv].x), int(face.vertices[(i+1)%nv].y), int(face.vertices[(i+1)%nv].z)
+            if y2 < y1:
+                xa, ya, za = x2, y2, z2
+                x2, y2, z2 = x1, y1, z1
+                x1, y1, z1 = xa, ya, za
+            y1, y2 = y1-y_min, y2-y_min
+            xn = x1
+            zn = z1
+            if y1+y_min != y_max or y2+y_min != y_max:
+                if x1 == x2 or y1 == y2:
+                    tx = 0
+                else:
+                    tx = (x2-x1)/(y2-y1)
+                if z1 == z2 or y1 == y2:
+                    tz = 0
+                else:
+                    tz = (z2-z1)/(y2-y1)
+
+                list_scanlines[y1].append((x1, z1))
+                for c in range(y1+1, y2):
+                    xn = xn+tx
+                    zn = zn+tz
+                    list_scanlines[c].append((int(xn), int(zn)))
+        for sl in list_scanlines:
+            sl.sort(key=lambda z: z[0])
+        return list_scanlines, y_min, y_max
+    
+    # Preenche o buffer
+    buffer = Buffer(WINDOW.WIDTH, WINDOW.HEIGHT)
+    for i in range(len(lista_faces_tela)):
+        cor = somb_const(lista_faces[i], CAMERA.VRP, Fonte_Luz.pos, Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n)
+        scanlines, y_min, y_max = scanline_calc(lista_faces_tela[i])
+        for i, scanline in enumerate(scanlines):
+            x1 = scanline[0][0]
+            x2 = scanline[1][0]
+            z1 = scanline[0][1]
+            z2 = scanline[1][1]
+            if z1 == z2 or x1 == x2:
+                tz = 0
+            else:
+                tz = (z2-z1)/(x2-x1)
+            zn = z1
+            for j in range(x1, x2):
+                buffer.test_and_set(j, i+y_min, zn, cor)
+                zn += tz
     print("Zbuffer calculado")
     # Pinta a tela com base no buffer
     for i in range(WINDOW.WIDTH-1):
@@ -250,15 +353,8 @@ def pintar_constante(lista_faces_tela, lista_faces, tela):
             #print(i, j)
             #print(f"({buffer.image_buffer[i, j].red}, {buffer.image_buffer[i, j].green}, {buffer.image_buffer[i, j].blue})", end=" ")
             #print(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue)
-            if (buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue) == WINDOW.BACKGROUND:
-                print("Background")
-            else:
-                print("Desenhado")
+            if (buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue) != WINDOW.BACKGROUND:
                 dpg.draw_line((i, j), (i+1, j), color=(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue), thickness=1, parent=tela)
-
-
-def pintar_gouraud(lista_faces_tela, lista_faces, tela):
-    fillpoly(lista_faces_tela, lista_faces, tela, 2)
 
 def fillpoly(lista_faces_tela, lista_faces, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
     def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
