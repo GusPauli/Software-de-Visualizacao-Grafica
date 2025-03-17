@@ -11,6 +11,8 @@ class DESENHO:
     VP_min = [0, 0]
     VP_max = [WINDOW.WIDTH-1, WINDOW.HEIGHT-1]
 
+    near= 0.1 
+    far =1000
     PERS = False  #Projeção perspectiva?
     HIDE_FACES = False #Esconder faces?
     SOMBREAMENTO = 0 #0 = SEM SOMBREAMENTO, 1 = CONSTANTE, 2 = GOURAUD
@@ -31,7 +33,7 @@ class TEXT_BOX:
 
 
 class CAMERA:
-    VRP = [0,0, 100]
+    VRP = [400,400, 400]
     p = [0,0,0]
     dp = 1000
     Y = [0, 1, 0]
