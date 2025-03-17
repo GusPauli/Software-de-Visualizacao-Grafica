@@ -257,6 +257,9 @@ class spline_surface:
             intervalJ += incrementJ
         outp[RESOLUTIONI - 1][RESOLUTIONJ - 1] = inp[NI][NJ]
 
+        self.resolutioni = RESOLUTIONI
+        self.resolutionj = RESOLUTIONJ
+
         # Pontos de controle e malha em SRU
         self.control_points = inp
         self.surface_points = outp
@@ -330,3 +333,6 @@ class spline_surface:
         self.PINTADO = True
         print(f"Depois de pintar: PINTADO = {self.PINTADO}")  # Verifica o novo valor
         pintar_constante(self.lista_faces_tela, self.lista_faces, "main_drawlist")
+    
+    def pinta_gouraud(self):
+        pintar_gouraud(self.lista_faces_tela, self.lista_faces, self.resolutioni, self.resolutionj, "main_drawlist")

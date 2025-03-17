@@ -359,11 +359,7 @@ def pintar_gouraud(lista_faces_tela, lista_faces, RESOLUTIONI, RESOLUTIONJ, tela
                 print("Desenhado")
                 dpg.draw_line((i, j), (i+1, j), color=(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue), thickness=1, parent=tela)
 
-
-def pintar_gouraud(lista_faces_tela, lista_faces, tela):
-    fillpoly(lista_faces_tela, lista_faces, tela, 2)
-
-def fillpoly(lista_faces_tela, lista_faces, tela, shading=0, cor_fundo=RGB(0, 0, 0)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
+def fillpoly(lista_faces_tela, lista_faces, tela, shading=0, cor_fundo=RGB(210, 210, 210)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
     def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
         list_scanlines = []
         nv = len(face.vertices) # Numero de vertices
@@ -411,7 +407,7 @@ def fillpoly(lista_faces_tela, lista_faces, tela, shading=0, cor_fundo=RGB(0, 0,
         if shading == 0: 
             for j in range(len(scanlines)):
                 for i in range(0, len(scanlines[j])-1, 2):
-                    dpg.draw_line([scanlines[j][i]+1, row], [scanlines[j][i+1], row], color=cor_fundo, thickness=1, parent=tela)
+                    dpg.draw_line([scanlines[j][i]+2, row], [scanlines[j][i+1], row], color=(cor_fundo.red, cor_fundo.green, cor_fundo.blue), thickness=1, parent=tela)
                 row = row+1
         # Fillpoly com sombreamento constante com z-buffer
         """elif shading == 1: 

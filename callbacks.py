@@ -258,6 +258,7 @@ def att_fonte_luz(sender, app_data, user_data):
             superficies[index].pinta_constante()
         elif user_data == "G":
             print("Modo Gouraud selecionado.")
+            superficies[index].pinta_gouraud()
         elif user_data == "P":
             print("Modo Phong selecionado.")
     else:
