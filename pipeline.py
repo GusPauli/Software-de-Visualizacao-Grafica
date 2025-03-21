@@ -7,7 +7,6 @@ from utils import XYZ, RGB
 
 mat_inversa = []
 
-
 def print_vet(inp):
     for i, row in enumerate(inp):
         for j, point in enumerate(row):
@@ -140,7 +139,6 @@ def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, v
     # Calcular a matriz final de transformação
     viewport_matrix = camera_viewport_mat(Xmin, Ymin, Xmax, Ymax, umin, vmin, umax, vmax)
     viewp_mat = matmul(viewport_matrix, camera_transf)
-    mat_inversa = linalg.pinv(viewp_mat)
 
     # Função para processar uma matriz de objetos XYZ
     def process_matrix(matrix):
@@ -160,10 +158,14 @@ def pipeline(projpers, inp, outp, vrp, p, dp, Y, Xmin, Ymin, Xmax, Ymax, umin, v
                     print(f"Warning: Point at [{i}][{j}] is not an XYZ object")
             transformed_points.append(row_points)
         return transformed_points
-
+    
+    def calc_inversa():
+        return linalg.pinv(viewp_mat)
+    
+    mat_inversa = calc_inversa()
 
     # Processar as matrizes de entrada e saída
     inp_transformed = process_matrix(inp)
     outp_transformed = process_matrix(outp)
     
-    return inp_transformed, outp_transformed
+    return inp_transformed, outp_transformed, mat_inversa

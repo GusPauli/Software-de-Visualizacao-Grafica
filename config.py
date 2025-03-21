@@ -12,7 +12,7 @@ class DESENHO:
     VP_max = [WINDOW.WIDTH-1, WINDOW.HEIGHT-1]
 
     near= 0.1 
-    far =1000
+    far =10000
     PERS = False  #Projeção perspectiva?
     HIDE_FACES = False #Esconder faces?
     SOMBREAMENTO = 0 #0 = SEM SOMBREAMENTO, 1 = CONSTANTE, 2 = GOURAUD

@@ -8,8 +8,9 @@ from buffer import *
 
 # Vetor para armazenar superfícies
 superficies = []
-index, px,py = 0,0,0
+index,px,py = 0,0,0
 ponto_atual = []
+mat_inversa = []
 NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ, grau= None, None, None, None, None, None, None
 
 def salvar_arquivo():
@@ -155,7 +156,7 @@ def callback_carregar_arquivo(sender, app_data):
 def recalc():
     # Recalcula os pontos da malha com base no novo VRP
     for superficie in superficies:
-        superficie.control_points_tela, superficie.surface_points_tela = pipeline(
+        superficie.control_points_tela, superficie.surface_points_tela, superficie.mat_inversa = pipeline(
             DESENHO.PERS, superficie.control_points, superficie.surface_points, 
             CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
             WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], 
@@ -164,13 +165,6 @@ def recalc():
 #=======================================ATUALIZA PONTOS DE CONTROLE E ====================================================================
 #==============================================RECALCULA TUDO ====================================================================
 def att_inp(mat, index):
-    """
-    Aplica uma transformação (mat) à superfície no índice especificado.
-
-    Parâmetros:
-        mat (list): Matriz de transformação 4x4.
-        index (int): Índice da superfície a ser transformada.
-    """
     # Verifica se o índice é válido
     if index < 0 or index >= len(superficies):
         print(f"Erro: Índice {index} fora dos limites da lista de superfícies.")
@@ -255,10 +249,12 @@ def att_fonte_luz(sender, app_data, user_data):
 
         # Implementa a lógica específica para cada valor de user_data
         if user_data == "C":
+            print(index)
             superficies[index].pinta_constante()
         elif user_data == "G":
             print("Modo Gouraud selecionado.")
             superficies[index].pinta_gouraud()
+            desenha(superficies)
         elif user_data == "P":
             print("Modo Phong selecionado.")
     else:
@@ -442,6 +438,7 @@ def callback_select_ponto(sender, app_data):
             for j, ponto in enumerate(pontos):
                 x = ponto.x
                 y = ponto.y
+                z = ponto.z * (-1)
                     
                 # Calcula a distância entre o ponto de controle e o clique
                 distancia = ((mouse_pos[0] - x) ** 2 + (mouse_pos[1] - y) ** 2) ** 0.5
@@ -453,12 +450,45 @@ def callback_select_ponto(sender, app_data):
                     py = j
 
                     # Atualiza os sliders com as coordenadas do ponto selecionado
-                    dpg.set_value("xslider", int(x))
-                    dpg.set_value("yslider", int(y))
-                    dpg.set_value("zslider", int(x))
+                    dpg.set_value("xinput", int(x))
+                    dpg.set_value("yinput", int(y))
+                    dpg.set_value("zinput", int(z))
                     return
 #========================================================================================================================
 #================================CALLBACKS SLIDERS===============================================================
 #========================================================================================================================
-def slider_callback(sender,app_data, user_data):
-    pass           
+def confirm_callback(sender,app_data, user_data):
+    #coordenadas dos pontos de controle em tela
+    pontos_controle = superficies[index].control_points_tela
+    ponto_atual = (pontos_controle[px][py].x,pontos_controle[px][py].y,pontos_controle[px][py].z)
+    novo_x = dpg.get_value("xinput")
+    novo_y = dpg.get_value("yinput")
+    novo_z = -dpg.get_value("zinput")
+    
+    ponto_atual=(novo_x, novo_y, novo_z, 1)
+    
+    mat_inversa = superficies[index].mat_inversa
+    aux =matmul(mat_inversa, ponto_atual)
+    novo = XYZ(aux[0]+1, aux[1]+1, -aux[2]+1)
+    p = superficies[index].control_points
+    p[px][py] = novo
+
+    superficies[index].control_points = p
+
+    # Cria uma nova superfície com os pontos de controle atualizados
+    nova_superficie = spline_surface(NI, NJ, TI, TJ, RESOLUTIONI, RESOLUTIONJ, 1111, superficies[index].control_points)
+
+    superficies[index].surface_points = nova_superficie.surface_points
+
+    superficies[index].lista_faces = processa_malha(superficies[index].surface_points)
+
+    # Recalcula a visibilidade das faces
+    superficies[index].visible_points, superficies[index].visible_faces, superficies[index].faces = visibility(superficies[index], CAMERA.VRP)
+
+    # Recalcula os pontos da malha com base nos novos pontos de controle
+    recalc()
+    desenha(superficies)
+
+
+    
+

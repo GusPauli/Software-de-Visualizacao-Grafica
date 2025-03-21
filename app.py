@@ -52,12 +52,13 @@ with dpg.window(label="Menu principal", width=WINDOW.WIDTH*0.3, height=WINDOW.HE
             dpg.add_button(label="Criar malha", callback=surface_callback)
             dpg.add_separator()
             dpg.add_text("Mover ponto Selecionado")
-            dpg.add_slider_int(label="X", tag="xslider", default_value=0,min_value=DESENHO.VP_min[0],
-                               max_value=DESENHO.VP_max[0],callback=slider_callback, user_data="X")
-            dpg.add_slider_int(label="Y", tag="yslider", default_value=0,min_value=DESENHO.VP_min[1],
-                               max_value=DESENHO.VP_max[1], callback=slider_callback, user_data="Y")
-            dpg.add_slider_int(label="Z", tag="zslider", default_value=0,min_value=DESENHO.near,
-                               max_value=DESENHO.far,callback=slider_callback, user_data="Z")            
+            # Caixas de entrada para x, y, z
+            dpg.add_input_int(label="X", tag="xinput", default_value=0, min_value=DESENHO.VP_min[0], max_value=DESENHO.VP_max[0], min_clamped=True, max_clamped=True)
+            dpg.add_input_int(label="Y", tag="yinput", default_value=0, min_value=DESENHO.VP_min[1], max_value=DESENHO.VP_max[1], min_clamped=True, max_clamped=True)
+            dpg.add_input_int(label="Z", tag="zinput", default_value=0, min_value=DESENHO.VP_min[0], max_value=DESENHO.VP_max[0], min_clamped=True, max_clamped=True)
+            
+            # Botão de confirmação
+            dpg.add_button(label="Confirmar", callback=confirm_callback)    
             
         with dpg.tab(label="Tela", tag="tab4"):
             dpg.add_text("Editar Window")
