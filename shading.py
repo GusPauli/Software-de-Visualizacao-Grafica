@@ -68,21 +68,20 @@ def somb_const(face, vrp, L, ila, il, ka, kd, ks, n):
 
 def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
 
-    vertices = [0 for i in range(len(obj))] #lista de faces em que cada vertice está contido
-
+    vertices = [0 for  i in range(len(obj.vertices))] #lista de faces em que cada vertice está contido
     f_normals = []
     for i in range(len(faces)): #para cada face
         aux = faces[i]
-        for a in aux: #para cada vertice da face
+        for a in range(len(aux.vertices)): #para cada vertice da face
             if vertices[a] == 0:
                 vertices[a] = [i]  #adiciona a face na lista de faces do vertice
             else:
                 vertices[a].append(i)
-        f_normals.append(normalize()) #normal unitária de todas as faces
+        f_normals.append(normalize(faces[i].vetor_normal)) #normal unitária de todas as faces
 
     marmota = [] #lista de vertices das faces visíveis
     for v_face in v_faces: #para cada face visível
-        for i in v_face: #para cada vertice da face visível
+        for i in v_face.vertices: #para cada vertice da face visível
             if i not in marmota:
                 marmota.append(i) #adiciona o vertice na lista de vertices das faces visíveis
 
@@ -90,7 +89,7 @@ def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
         if i not in marmota:
             vertices[i] = []    #vertices que não estão contidos em nenhuma face são zerados
 
-    vnmu = [[] for i in range(len(obj))] #vetor normal médio unitário
+    vnmu = [[] for i in range(len(obj.vertices))] #vetor normal médio unitário
     for i in range(len(vertices)):
         if vertices[i] != []:  #para cada vértice contido em alguma face visível
             v = [0, 0, 0]
@@ -98,7 +97,7 @@ def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
                 v = [v[0]+f_normals[j][0],  v[1]+f_normals[j][1],  v[2]+f_normals[j][2]] 
             vnmu[i] = (normalize(v)) #vetor normal médio unitário dos vertices das faces visíveis
 
-    Ia = [ila[0]*ka[0],   ila[1]*ka[1],   ila[2]*ka[2]] #iluminação ambiente
+    Ia = [ila.red*ka[0],   ila.blue*ka[1],   ila.green*ka[2]] #iluminação ambiente
 
     It_verts = []
     for i in range(len(vertices)):

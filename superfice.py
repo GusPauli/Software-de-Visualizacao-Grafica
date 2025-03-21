@@ -96,7 +96,7 @@ def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=N
                     cor_linha = cor_linha_invisivel  # Pelo menos um ponto não é visível
             
             # Desenhar a linha com a cor apropriada
-            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
+            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=2, parent="main_drawlist")
     
     # Desenhar linhas verticais
     for j in range(num_colunas):
@@ -116,7 +116,7 @@ def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=N
                     cor_linha = cor_linha_invisivel  # Pelo menos um ponto não é visível
             
             # Desenhar a linha com a cor apropriada
-            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=1, parent="main_drawlist")
+            dpg.draw_line([x1, y1], [x2, y2], color=cor_linha, thickness=2, parent="main_drawlist")
             
 class spline_surface:
     def __init__(self, NI: int, NJ: int, TI: int, TJ: int, RESOLUTIONI: int, RESOLUTIONJ: int, seed: int = 1111, inp: List[List[XYZ]] = None):
@@ -193,9 +193,9 @@ class spline_surface:
             random.seed(seed)
             for i in range(NI + 1):
                 for j in range(NJ + 1):
-                    inp[i][j].x = i * 100
-                    inp[i][j].y = j * 100
-                    inp[i][j].z = random.randint(-100, 100)
+                    inp[i][j].x = i * 20
+                    inp[i][j].y = j * 20
+                    inp[i][j].z = random.randint(-20, 20)
 
         # Arrays para armazenar a superfície gerada
         outp: List[List[XYZ]] = [[XYZ(0, 0, 0) for _ in range(RESOLUTIONJ)] for _ in range(RESOLUTIONI)]
@@ -265,7 +265,7 @@ class spline_surface:
         self.surface_points = outp
 
         # Pontos de controle e malha em SRC
-        self.control_points_tela, self.surface_points_tela = pipeline(DESENHO.PERS, inp, outp, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
+        self.control_points_tela, self.surface_points_tela, self.mat_inversa = pipeline(DESENHO.PERS, inp, outp, CAMERA.VRP, CAMERA.p, CAMERA.dp, CAMERA.Y, 0, -WINDOW.HEIGHT,
                                 WINDOW.WIDTH, WINDOW.HEIGHT, DESENHO.VP_min[0], DESENHO.VP_min[1], DESENHO.VP_max[0], DESENHO.VP_max[1])
         self.centroide = self.calcular_centroide()
         self.lista_faces = processa_malha(self.surface_points)
@@ -308,9 +308,12 @@ class spline_surface:
         camera_trans = camera_transf_mat(CAMERA.VRP, CAMERA.p, CAMERA.Y)
         centroide_src = np.matmul(camera_trans, norm_centroide)
         if min_dist >= centroide_src[2] >= max_dist:
+            print("malha dentro do plano")
             return True
         else:
+            print("malha fora do plano")
             return False
+            
 
     def desenha_wireframe(self):
         self.lista_faces_tela = processa_malha(self.surface_points_tela)
@@ -329,10 +332,17 @@ class spline_surface:
                         # pontos_visiveis=self.visible_points, cor_pontos=(0, 255, 0)) #desenha pontos da malha de verde
     
     def pinta_constante(self):
-        print(f"Antes de pintar: PINTADO = {self.PINTADO}")  # Verifica o valor atual
         self.PINTADO = True
-        print(f"Depois de pintar: PINTADO = {self.PINTADO}")  # Verifica o novo valor
         pintar_constante(self.lista_faces_tela, self.lista_faces, "main_drawlist")
+        desenha_pontos(self.control_points_tela, self.control_points, cor_pontos=(255, 0, 0), mostrar_indices=True)  # Desenha pontos de controle em vermelha
     
     def pinta_gouraud(self):
-        pintar_gouraud(self.lista_faces_tela, self.lista_faces, self.resolutioni, self.resolutionj, "main_drawlist")
+        pintar_gouraud(self.lista_faces_tela, self.lista_faces, self.visible_faces, self.resolutioni, self.resolutionj, "main_drawlist")
+        
+        desenha_pontos(self.control_points_tela, self.control_points, cor_pontos=(255, 0, 0), mostrar_indices=True)  # Desenha pontos de controle em vermelho
+
+        desenha_malha(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
+                    pontos_visiveis=self.visible_points, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0) 
+                                                                                        # Azul para arestas visíveis 
+                                                                                        # Vermelho para arestas não visíveis
+        )
