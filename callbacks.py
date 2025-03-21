@@ -250,11 +250,15 @@ def att_fonte_luz(sender, app_data, user_data):
         # Implementa a lógica específica para cada valor de user_data
         if user_data == "C":
             print(index)
-            superficies[index].pinta_constante()
+            #superficies[index].pinta_constante()
+            superficies[index].shading = 1
+            superficies[index].PINTADO = True
+            desenha(superficies, superficies[index].shading)
         elif user_data == "G":
-            print("Modo Gouraud selecionado.")
-            superficies[index].pinta_gouraud()
-            desenha(superficies)
+            superficies[index].shading = 2
+            superficies[index].PINTADO = True
+            #superficies[index].pinta_gouraud()
+            desenha(superficies, superficies[index].shading)
         elif user_data == "P":
             print("Modo Phong selecionado.")
     else:
@@ -335,13 +339,15 @@ def limpa_tela():
     superficies.clear()
 #========================================================================================================================
 #========================================================================================================================  
-def desenha(listas):
+def desenha(listas, s=0):
     dpg.delete_item("main_drawlist", children_only=True)
     for superficie in listas:
         superficie.desenha_wireframe()
         if superficie.PINTADO:
-            #superficie.pinta_constante()
-            superficie.pinta_gouraud()
+            if superficie.shading == 1:
+                superficie.pinta_constante()
+            elif superficie.shading == 2:
+                superficie.pinta_gouraud()
             #pintar_constante(superficie.lista_faces_tela,superficie.lista_faces,"main_drawlist")
 #========================================================================================================================
 #========================================================================================================================

@@ -121,6 +121,7 @@ def desenha_malha(matriz_pontos, matriz_pontos_originais=None, pontos_visiveis=N
 class spline_surface:
     def __init__(self, NI: int, NJ: int, TI: int, TJ: int, RESOLUTIONI: int, RESOLUTIONJ: int, seed: int = 1111, inp: List[List[XYZ]] = None):
         self.PINTADO = False
+        self.shading = 0
         # Função para calcular os nós da spline
         def spline_knots(knots: List[int], n: int, t: int):
             """
@@ -337,12 +338,7 @@ class spline_surface:
         desenha_pontos(self.control_points_tela, self.control_points, cor_pontos=(255, 0, 0), mostrar_indices=True)  # Desenha pontos de controle em vermelha
     
     def pinta_gouraud(self):
-        pintar_gouraud(self.lista_faces_tela, self.lista_faces, self.visible_faces, self.resolutioni, self.resolutionj, "main_drawlist")
-        
+        self.PINTADO = True
+        pintar_gouraud(self.lista_faces_tela, self.lista_faces, self.resolutioni, self.resolutionj, "main_drawlist")
         desenha_pontos(self.control_points_tela, self.control_points, cor_pontos=(255, 0, 0), mostrar_indices=True)  # Desenha pontos de controle em vermelho
-
-        desenha_malha(self.surface_points_tela, matriz_pontos_originais=self.surface_points, 
-                    pontos_visiveis=self.visible_points, cor_linha_visivel=(0, 0, 255), cor_linha_invisivel=(255, 0, 0) 
-                                                                                        # Azul para arestas visíveis 
-                                                                                        # Vermelho para arestas não visíveis
-        )
+        

@@ -66,123 +66,6 @@ def somb_const(face, vrp, L, ila, il, ka, kd, ks, n):
 
     return it_face
 
-def somb_gouraud(obj, faces, v_faces, vrp, L, ila, il, ka, kd, ks, n):
-
-    vertices = [0 for  i in range(len(obj.vertices))] #lista de faces em que cada vertice está contido
-    f_normals = []
-    for i in range(len(faces)): #para cada face
-        aux = faces[i]
-        for a in range(len(aux.vertices)): #para cada vertice da face
-            if vertices[a] == 0:
-                vertices[a] = [i]  #adiciona a face na lista de faces do vertice
-            else:
-                vertices[a].append(i)
-        f_normals.append(normalize(faces[i].vetor_normal)) #normal unitária de todas as faces
-
-    marmota = [] #lista de vertices das faces visíveis
-    for v_face in v_faces: #para cada face visível
-        for i in v_face.vertices: #para cada vertice da face visível
-            if i not in marmota:
-                marmota.append(i) #adiciona o vertice na lista de vertices das faces visíveis
-
-    for i in range(len(vertices)):
-        if i not in marmota:
-            vertices[i] = []    #vertices que não estão contidos em nenhuma face são zerados
-
-    vnmu = [[] for i in range(len(obj.vertices))] #vetor normal médio unitário
-    for i in range(len(vertices)):
-        if vertices[i] != []:  #para cada vértice contido em alguma face visível
-            v = [0, 0, 0]
-            for j in vertices[i]:
-                v = [v[0]+f_normals[j][0],  v[1]+f_normals[j][1],  v[2]+f_normals[j][2]] 
-            vnmu[i] = (normalize(v)) #vetor normal médio unitário dos vertices das faces visíveis
-
-    Ia = [ila.red*ka[0],   ila.blue*ka[1],   ila.green*ka[2]] #iluminação ambiente
-
-    It_verts = []
-    for i in range(len(vertices)):
-        It_verts.append([])
-        if vertices[i] != []:
-            L_dir = normalize([L[0]-obj[i][0],  L[1]-obj[i][1],  L[2]-obj[i][2]]) #vetor direção da luz para vértice
-            n_dot_l = dot(vnmu[i], L_dir)
-            if n_dot_l < 0:
-                It_verts[i] = (It_calc(Ia, [0,0,0], [0,0,0])) #apenas iluminação ambiente p o vértice atual
-                continue
-            else:
-                Id = [il[0]*kd[0]*n_dot_l,   il[1]*kd[1]*n_dot_l,   il[2]*kd[2]*n_dot_l]
-            
-            r = normalize([2*n_dot_l*vnmu[i][0]-L_dir[0],  2*n_dot_l*vnmu[i][1]-L_dir[1],  2*n_dot_l*vnmu[i][2]-L_dir[2]])
-            s = normalize([vrp[0]-obj[i][0],  vrp[1]-obj[i][1],  vrp[2]-obj[i][2]])
-
-            r_dot_s = dot(r, s)
-            if r_dot_s < 0:
-                It_verts[i] = (It_calc(Ia, Id, [0, 0, 0])) #apenas iluminação ambiente e difusa p o vértice atual
-                continue
-            else:
-                aux = r_dot_s**n
-                Is = [il[0]*ks[0]*aux,  il[1]*ks[1]*aux,  il[2]*ks[2]*aux]
-            It_verts[i] = (It_calc(Ia, Id, Is))
-        
-    return It_verts
-
-def fillpoly_gouraud(screen, obj, It_vertices, v_faces, zbuffer, imgbuffer):
-
-    for i in range(len(v_faces)):
-        a,b,c,d = v_faces[i]
-        corA = It_vertices[a]
-        corB = It_vertices[b]
-        corC = It_vertices[c]
-        corD = It_vertices[d]
-        
-        #abc = triangulo1
-        #acd = triangulo2
-        cor = [corA, corB, corC]
-        keys = [a, b, c]
-        # Ordene as chaves com base no valor de y
-        sorted_keys = sorted(keys, key=lambda k: obj[k][1])
-        # Ordene o vetor vor de acordo com a nova ordem das chaves
-        sorted_cor = [cor[keys.index(k)] for k in sorted_keys]
-        # Objetos ordenados e vetor vor ordenado
-        sorted_objects = [obj[k] for k in sorted_keys]
-
-        fill_triangulo(screen, sorted_objects[0], sorted_objects[1], sorted_objects[2], sorted_cor, zbuffer, imgbuffer)
-
-
-        cor = [corA, corC, corD]
-        keys = [a, c, d]
-        # Ordene as chaves com base no valor de y
-        sorted_keys = sorted(keys, key=lambda k: obj[k][1])
-        # Ordene o vetor vor de acordo com a nova ordem das chaves
-        sorted_cor = [cor[keys.index(k)] for k in sorted_keys]
-        # Objetos ordenados e vetor vor ordenado
-        sorted_objects = [obj[k] for k in sorted_keys]
-        
-        fill_triangulo(screen, sorted_objects[0], sorted_objects[1], sorted_objects[2], sorted_cor,zbuffer, imgbuffer)
-
-
-
-        ''' # Ordenar os pontos por y
-        pontos_ordenados = sorted([obj[a], obj[b], obj[c], obj[d]], key=lambda ponto: ponto[1])
-
-        # Dividir os pontos em duas metades
-        metade_superior = pontos_ordenados[:2]
-        metade_inferior = pontos_ordenados[2:]
-
-        # Ordenar as metades por x
-        metade_superior.sort(key=lambda ponto: ponto[0])
-        metade_inferior.sort(key=lambda ponto: ponto[0])
-
-        for y in range(round(metade_superior[0][1]), round(metade_inferior[1][1])):
-            if y < metade_inferior[0][1]:
-                x1 = metade_superior[0][0] + (metade_superior[1][0] - metade_superior[0][0]) * (y - metade_superior[0][1]) / (metade_superior[1][1] - metade_superior[0][1])
-                x2 = metade_superior[0][0] + (metade_inferior[0][0] - metade_superior[0][0]) * (y - metade_superior[0][1]) / (metade_inferior[0][1] - metade_superior[0][1])
-            else:
-                x1 = metade_inferior[0][0] + (metade_inferior[1][0] - metade_inferior[0][0]) * (y - metade_inferior[0][1]) / (metade_inferior[1][1] - metade_inferior[0][1])
-                x2 = metade_superior[1][0] + (metade_inferior[1][0] - metade_superior[1][0]) * (y - metade_superior[1][1]) / (metade_inferior[1][1] - metade_superior[1][1])
-
-            for x in range(round(min(x1, x2)), round(max(x1, x2))):
-                screen.set_at((x,y),cor_pixel)'''
-
 def algoritmo_pintor(lista_faces_tela, lista_faces, tela):
     fillpoly(lista_faces_tela, lista_faces, tela, 0)
 
@@ -325,7 +208,7 @@ def pintar_gouraud(lista_faces_tela, lista_faces, RESOLUTIONI, RESOLUTIONJ, tela
             y1, y2 = y1-y_min, y2-y_min
             xn = x1
             zn = z1
-            corn = cor1
+            corn = deepcopy(cor1)
             if y1+y_min != y_max or y2+y_min != y_max:
                 if y1 == y2:
                     tx = tz = tr = tg = tb = 0
@@ -355,52 +238,53 @@ def pintar_gouraud(lista_faces_tela, lista_faces, RESOLUTIONI, RESOLUTIONJ, tela
         return list_scanlines, y_min, y_max
     
     lista_normal_vertices = calc_normal_vertic(lista_faces, RESOLUTIONI, RESOLUTIONJ)
+    lista_cor_vertices = []
+    for i, normais in enumerate(lista_normal_vertices):
+        norms = []
+        for j, normal in enumerate(normais):
+            norms.append(deepcopy(It_calc(Fonte_Luz.pos, [normal.x, normal.y, normal.z], CAMERA.VRP, lista_faces[i+j].vertices[0], Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n)))
+        lista_cor_vertices.append(norms)
     #print(lista_normal_vertices)
-    row = len(lista_normal_vertices[0])
-    col = len(lista_normal_vertices)
-    
     # Preenche o buffer
     buffer = Buffer(WINDOW.WIDTH, WINDOW.HEIGHT)
     m = 0
     l = 0
     for i in range(len(lista_faces_tela)):
         face = lista_faces[i]
-        normais = [lista_normal_vertices[m][l], lista_normal_vertices[m][l+1], lista_normal_vertices[m+1][l+1], lista_normal_vertices[m+1][l]]
-        cores_normais = [It_calc(Fonte_Luz.pos, [normais[0].x, normais[0].y, normais[0].z], CAMERA.VRP, lista_faces[i].vertices[0], Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n), 
-                         It_calc(Fonte_Luz.pos, [normais[1].x, normais[1].y, normais[1].z], CAMERA.VRP, lista_faces[i].vertices[1], Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n), 
-                         It_calc(Fonte_Luz.pos, [normais[2].x, normais[2].y, normais[2].z], CAMERA.VRP, lista_faces[i].vertices[2], Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n), 
-                         It_calc(Fonte_Luz.pos, [normais[3].x, normais[3].y, normais[3].z], CAMERA.VRP, lista_faces[i].vertices[3], Fonte_Luz.ila, Fonte_Luz.il, Fonte_Luz.Ka, Fonte_Luz.Kd, Fonte_Luz.Ks, Fonte_Luz.n)]
+        normais = [lista_cor_vertices[m][l], lista_cor_vertices[m+1][l], lista_cor_vertices[m+1][l+1], lista_cor_vertices[m][l+1]]
+        #print(f"[{m}][{l}] = {lista_cor_vertices[m][l].red} [{m}][{l+1}] = {lista_cor_vertices[m][l+1].red} [{m+1}][{l+1}] = {lista_cor_vertices[m+1][l+1].red} [{m+1}][{l}] = {lista_cor_vertices[m+1][l].red}")
         #print(cores_normais[0].red, cores_normais[1].red, cores_normais[2].red, cores_normais[3].red)
         l += 1
         if l == RESOLUTIONJ-1:
             m += 1
             l = 0
 
-        scanlines, y_min, y_max = scanline_calc(lista_faces_tela[i], cores_normais)
+        scanlines, y_min, y_max = scanline_calc(lista_faces_tela[i], normais)
         for j, scanline in enumerate(scanlines):
             x1 = scanline[0][0]
             x2 = scanline[1][0]
             z1 = scanline[0][1]
             z2 = scanline[1][1]
-            cor1 = scanline[0][2]
-            cor2 = scanline[1][2]
+            cor1 = deepcopy(scanline[0][2])
+            cor2 = deepcopy(scanline[1][2])
             #print(scanline[0])
             #print([n1.x, n1.y, n1.z], [n2.x, n2.y, n2.z])
             
             if x1 == x2:
                 tz = tr = tg = tb = 0
-            elif z1 == z2:
-                tz = 0
             else:
-                tz = (z2-z1)/(x2-x1)
                 tr = (cor2.red-cor1.red)/(x2-x1)
                 tg = (cor2.green-cor1.green)/(x2-x1)
                 tb = (cor2.blue-cor1.blue)/(x2-x1)
+                if z1 == z2:
+                    tz = 0
+                else:
+                    tz = (z2-z1)/(x2-x1)
             zn = z1
-            corn = cor1
+            corn = deepcopy(cor1)
             
             for k in range(x1, x2):
-                buffer.test_and_set(k, j+y_min, zn, corn)
+                buffer.test_and_set(k, j+y_min, zn, deepcopy(corn))
                 zn += tz
                 corn.red += tr
                 corn.green += tg
@@ -416,7 +300,6 @@ def pintar_gouraud(lista_faces_tela, lista_faces, RESOLUTIONI, RESOLUTIONJ, tela
             if (buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue) != WINDOW.BACKGROUND:
                 dpg.draw_line((i, j), (i+1, j), color=(buffer.image_buffer[i, j].red, buffer.image_buffer[i, j].green, buffer.image_buffer[i, j].blue), thickness=1, parent=tela)
                 
-
 def fillpoly(lista_faces_tela, lista_faces, tela, shading=0, cor_fundo=RGB(210, 210, 210)): # Algoritmo fillpoly em si. Pega a lista de scanlines e preenche linha por linha
     def scanline_calc(face): # Codigo de calculo das scanlines de forma incremental
         list_scanlines = []
