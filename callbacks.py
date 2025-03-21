@@ -344,7 +344,8 @@ def desenha(listas):
     for superficie in listas:
         superficie.desenha_wireframe()
         if superficie.PINTADO:
-            superficie.pinta_constante()
+            #superficie.pinta_constante()
+            superficie.pinta_gouraud()
             #pintar_constante(superficie.lista_faces_tela,superficie.lista_faces,"main_drawlist")
 #========================================================================================================================
 #========================================================================================================================
